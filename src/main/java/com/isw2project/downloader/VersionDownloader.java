@@ -14,9 +14,9 @@ public class VersionDownloader {
     private final ObjectMapper objectMapper;
     private static final Logger log = LoggerFactory.getLogger(VersionDownloader.class);
 
-    public VersionDownloader(JiraClient client, ObjectMapper objectMapper) {
+    public VersionDownloader(JiraClient client) {
         this.client = client;
-        this.objectMapper = objectMapper;
+        this.objectMapper = new ObjectMapper();
     }
 
     List<Version> downloadVersions(String projectKey) {

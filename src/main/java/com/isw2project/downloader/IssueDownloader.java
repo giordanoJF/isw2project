@@ -16,9 +16,9 @@ public class IssueDownloader {
     private static final Logger log = LoggerFactory.getLogger(IssueDownloader.class);
 
 
-    public IssueDownloader(JiraClient client, ObjectMapper objectMapper) {
+    public IssueDownloader(JiraClient client) {
         this.client = client;
-        this.objectMapper = objectMapper;
+        this.objectMapper = new ObjectMapper();
     }
 
     List<Issue> downloadIssues(ProjectConfig projectConfig) {

@@ -1,6 +1,5 @@
 package com.isw2project.downloader;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.isw2project.config.AppConfig;
 import com.isw2project.config.ProjectConfig;
 import com.isw2project.model.Issue;
@@ -18,18 +17,18 @@ import java.util.List;
 public class DownloaderOrchestrator {
 
     private final AppConfig config;
-    private static final Logger log = LoggerFactory.getLogger(DownloaderOrchestrator.class);
     private final IssueDownloader issueDownloader;
     private final VersionDownloader versionDownloader;
+
+    private static final Logger log = LoggerFactory.getLogger(DownloaderOrchestrator.class);
 
     public DownloaderOrchestrator(AppConfig config) {
         this.config = config;
 
         JiraClient client = new JiraClient(config.getBaseUrl());
-        ObjectMapper objectMapper = new ObjectMapper();
 
-        this.issueDownloader = new IssueDownloader(client, objectMapper);
-        this.versionDownloader = new VersionDownloader(client, objectMapper);
+        this.issueDownloader = new IssueDownloader(client);
+        this.versionDownloader = new VersionDownloader(client);
     }
 
     /**
