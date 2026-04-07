@@ -1,0 +1,10 @@
+baseUrl: https://issues.apache.org/jira
+
+projects:
+
+  - key: BOOKKEEPER
+    jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
+
+#  - key: KAFKA
+#    jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
+
