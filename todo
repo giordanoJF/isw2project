@@ -2,3 +2,5 @@ sonarcube zero code smells
 understand better the consistency checks
 better terminal colors
 crosslin versions and dates
+remove idea folder
+services should be static or not?

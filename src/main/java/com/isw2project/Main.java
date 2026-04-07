@@ -2,12 +2,12 @@ package com.isw2project;
 
 import com.isw2project.config.AppConfig;
 import com.isw2project.config.ConfigLoader;
-import com.isw2project.consistency.ConsistencyChecker;
+import com.isw2project.consistency.ConsistencyOrchestrator;
 import com.isw2project.consistency.checks.IssueHasCreatedDateCheck;
 import com.isw2project.consistency.checks.IssueHasKeyCheck;
 import com.isw2project.consistency.checks.VersionHasNameCheck;
 import com.isw2project.consistency.checks.VersionIsReleasedCheck;
-import com.isw2project.downloader.JiraDownloader;
+import com.isw2project.downloader.DownloaderOrchestrator;
 import com.isw2project.model.ProjectData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +22,12 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
 
-    public static void main() {
+    static void main() {
 
         log.info("\n\n##### Starting Main #####\n");
 
         AppConfig config = ConfigLoader.load("config.yaml");
-        JiraDownloader downloader = new JiraDownloader(config);
+        DownloaderOrchestrator downloader = new DownloaderOrchestrator(config);
 
         List<ProjectData> results = downloader.downloadAll();
 
@@ -38,7 +38,7 @@ public class Main {
                     projectData.getVersions().size()));
 
 
-        ConsistencyChecker checker = new ConsistencyChecker(
+        ConsistencyOrchestrator checker = new ConsistencyOrchestrator(
                 List.of(new IssueHasKeyCheck(), new IssueHasCreatedDateCheck()),
                 List.of(new VersionHasNameCheck(), new VersionIsReleasedCheck())
         );

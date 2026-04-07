@@ -8,13 +8,13 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class ConsistencyChecker {
+public class ConsistencyOrchestrator {
 
     private final List<IssueCheck> issueChecks;
     private final List<VersionCheck> versionChecks;
-    private static final Logger log = LoggerFactory.getLogger(ConsistencyChecker.class);
+    private static final Logger log = LoggerFactory.getLogger(ConsistencyOrchestrator.class);
 
-    public ConsistencyChecker(List<IssueCheck> issueChecks, List<VersionCheck> versionChecks) {
+    public ConsistencyOrchestrator(List<IssueCheck> issueChecks, List<VersionCheck> versionChecks) {
         this.issueChecks   = List.copyOf(issueChecks);
         this.versionChecks = List.copyOf(versionChecks);
     }
