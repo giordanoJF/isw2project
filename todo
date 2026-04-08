@@ -4,3 +4,8 @@ better terminal colors
 crosslin versions and dates
 remove idea folder
 services should be static or not?
+enricher should create a copy of issues
+check logic of enricher according to enrich only with opening version for now
+create the csv according to check if all the version are setted
+check if run works
+some tickets have not OV because VersionDateService can't find one

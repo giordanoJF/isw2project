@@ -59,6 +59,8 @@ public class Issue {
         @JsonProperty("fixVersions")
         private List<Version> fixVersions;
 
+        private Version openingVersion;
+
         public String getSummary()    { return summary; }
         public Status getStatus()     { return status; }
         public IssueType getIssueType() { return issueType; }
@@ -67,6 +69,8 @@ public class Issue {
         public String getUpdated()    { return updated; }
         public List<Version> getAffectedVersions() { return affectedVersions; }
         public List<Version> getFixVersions() { return fixVersions; }
+        public Version getOpeningVersion()              { return openingVersion; }
+        public void setOpeningVersion(Version version)  { openingVersion = version; }
 
     }
 

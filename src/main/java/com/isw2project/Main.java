@@ -8,6 +8,8 @@ import com.isw2project.consistency.checks.IssueHasKeyCheck;
 import com.isw2project.consistency.checks.VersionHasNameCheck;
 import com.isw2project.consistency.checks.VersionIsReleasedCheck;
 import com.isw2project.downloader.DownloaderOrchestrator;
+import com.isw2project.enricher.EnricherOrchestrator;
+import com.isw2project.enricher.VersionDateService;
 import com.isw2project.model.ProjectData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,31 +27,32 @@ public class Main {
     static void main() {
 
         log.info("\n\n##### Starting Main #####\n");
-
         AppConfig config = ConfigLoader.load("config.yaml");
+
+        // Download versions and issues
         DownloaderOrchestrator downloader = new DownloaderOrchestrator(config);
-
-        List<ProjectData> results = downloader.downloadAll();
-
-        results.forEach(projectData ->
+        List<ProjectData> originalResult = downloader.downloadAll();
+        originalResult.forEach(projectData ->
             log.info("Project [{}]: {} issues, {} versions downloaded.",
                     projectData.getProjectKey(),
                     projectData.getIssues().size(),
                     projectData.getVersions().size()));
 
-
+        // Consistency check
         ConsistencyOrchestrator checker = new ConsistencyOrchestrator(
                 List.of(new IssueHasKeyCheck(), new IssueHasCreatedDateCheck()),
                 List.of(new VersionHasNameCheck(), new VersionIsReleasedCheck())
         );
-
-        List<ProjectData> cleaned = checker.clean(results, false);
-
-        cleaned.forEach(projectData ->
+        List<ProjectData> cleanedResult = checker.clean(originalResult, false);
+        cleanedResult.forEach(projectData ->
             log.info("Cleaned Project [{}]: {} issues, {} versions downloaded.",
                     projectData.getProjectKey(),
                     projectData.getIssues().size(),
                     projectData.getVersions().size()));
+
+        // Enrich issues with opening version
+        EnricherOrchestrator enricher = new EnricherOrchestrator(new VersionDateService());
+        enricher.enrichWithOV(cleanedResult);
 
 
         log.info("Done.");
