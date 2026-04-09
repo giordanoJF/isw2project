@@ -6,9 +6,9 @@ package com.isw2project.downloader;
  * Example output:
  *   project = "KAFKA" AND issuetype = "Bug" AND status = "Open"
  */
-public class JqlBuilder {
+public class JqlBuilderService {
 
-    private JqlBuilder() {}
+    private JqlBuilderService() {}
 
     /**
      * Builds a JQL query string.

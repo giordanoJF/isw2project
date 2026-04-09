@@ -17,18 +17,18 @@ import java.util.List;
 public class DownloaderOrchestrator {
 
     private final AppConfig config;
-    private final IssueDownloader issueDownloader;
-    private final VersionDownloader versionDownloader;
+    private final IssueDownloaderService issueDownloaderService;
+    private final VersionDownloaderService versionDownloaderService;
 
     private static final Logger log = LoggerFactory.getLogger(DownloaderOrchestrator.class);
 
     public DownloaderOrchestrator(AppConfig config) {
         this.config = config;
 
-        JiraClient client = new JiraClient(config.getBaseUrl());
+        JiraRequestService client = new JiraRequestService(config.getBaseUrl());
 
-        this.issueDownloader = new IssueDownloader(client);
-        this.versionDownloader = new VersionDownloader(client);
+        this.issueDownloaderService = new IssueDownloaderService(client);
+        this.versionDownloaderService = new VersionDownloaderService(client);
     }
 
     /**
@@ -49,8 +49,8 @@ public class DownloaderOrchestrator {
     // -------------------------------------------------------------------------
 
     private ProjectData downloadProject(ProjectConfig projectConfig) {
-        List<Issue> issues     = issueDownloader.downloadIssues(projectConfig);
-        List<Version> versions = versionDownloader.downloadVersions(projectConfig.getKey());
+        List<Issue> issues     = issueDownloaderService.downloadIssues(projectConfig);
+        List<Version> versions = versionDownloaderService.downloadVersions(projectConfig.getKey());
         return new ProjectData(projectConfig.getKey(), issues, versions);
     }
 }

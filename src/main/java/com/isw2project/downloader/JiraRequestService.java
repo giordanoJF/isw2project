@@ -16,7 +16,7 @@ import java.time.Duration;
  * Low-level HTTP client for the Jira REST API.
  * Responsible only for making requests and returning raw JSON nodes.
  */
-public class JiraClient {
+public class JiraRequestService {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
@@ -24,7 +24,7 @@ public class JiraClient {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public JiraClient(String baseUrl) {
+    public JiraRequestService(String baseUrl) {
         this.baseUrl      = baseUrl.replaceAll("/$", ""); // strip trailing slash
         this.httpClient   = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
         this.objectMapper = new ObjectMapper();

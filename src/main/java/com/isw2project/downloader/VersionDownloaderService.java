@@ -9,12 +9,12 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public class VersionDownloader {
-    private final JiraClient client;
+public class VersionDownloaderService {
+    private final JiraRequestService client;
     private final ObjectMapper objectMapper;
-    private static final Logger log = LoggerFactory.getLogger(VersionDownloader.class);
+    private static final Logger log = LoggerFactory.getLogger(VersionDownloaderService.class);
 
-    public VersionDownloader(JiraClient client) {
+    public VersionDownloaderService(JiraRequestService client) {
         this.client = client;
         this.objectMapper = new ObjectMapper();
     }

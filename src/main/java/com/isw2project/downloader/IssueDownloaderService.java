@@ -10,19 +10,19 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IssueDownloader {
-    private final JiraClient client;
+public class IssueDownloaderService {
+    private final JiraRequestService client;
     private final ObjectMapper objectMapper;
-    private static final Logger log = LoggerFactory.getLogger(IssueDownloader.class);
+    private static final Logger log = LoggerFactory.getLogger(IssueDownloaderService.class);
 
 
-    public IssueDownloader(JiraClient client) {
+    public IssueDownloaderService(JiraRequestService client) {
         this.client = client;
         this.objectMapper = new ObjectMapper();
     }
 
     List<Issue> downloadIssues(ProjectConfig projectConfig) {
-        String jql = JqlBuilder.build(projectConfig.getKey(), projectConfig.getJql());
+        String jql = JqlBuilderService.build(projectConfig.getKey(), projectConfig.getJql());
         log.info("  JQL: {}", jql);
 
         List<Issue> issues = new ArrayList<>();
