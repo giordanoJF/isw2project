@@ -1,0 +1,2 @@
+drop ticket with created date before any version (released) of the project
+drop version released
