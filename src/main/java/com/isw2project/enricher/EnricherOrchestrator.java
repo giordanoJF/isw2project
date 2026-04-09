@@ -19,21 +19,33 @@ public class EnricherOrchestrator {
         this.versionDateService = versionDateService;
     }
 
-    public void enrichWithOV(List<ProjectData> projects) {
-        projects.forEach(this::enrichProjectWithOV);
+    public List<ProjectData> enrichWithOV(List<ProjectData> projects, boolean updateOriginal) {
+        List<ProjectData> enriched = projects.stream()
+                .map(this::enrichProjectWithOV)
+                .toList();
+
+        if (updateOriginal) {
+            projects.clear();
+            projects.addAll(enriched);
+        }
+
+        return enriched;
     }
 
-    private void enrichProjectWithOV(ProjectData projectData) {
-        List<Version> versions = projectData.getVersions();
-        projectData.getIssues().forEach(issue -> enrichIssueWithOV(issue, versions, projectData.getProjectKey()));
+    private ProjectData enrichProjectWithOV(ProjectData projectData) {
+        List<Issue> enrichedIssues = projectData.getIssues().stream()
+                .map(issue -> enrichIssueWithOV(issue, projectData.getVersions(), projectData.getProjectKey()))
+                .toList();
+
+        return new ProjectData(projectData.getProjectKey(), enrichedIssues, projectData.getVersions());
     }
 
-    private void enrichIssueWithOV(Issue issue, List<Version> versions, String projectKey) {
+    private Issue enrichIssueWithOV(Issue issue, List<Version> versions, String projectKey) {
         String created = issue.getFields().getCreated();
         if (created == null || created.isBlank()) {
             log.warn("Project [{}] issue [{}] has no creation date, skipping opening version.",
                     projectKey, issue.getKey());
-            return;
+            return issue;
         }
 
         Optional<Version> openingVersion = versionDateService.findClosestVersionBefore(created, versions);
@@ -41,8 +53,9 @@ public class EnricherOrchestrator {
         if (openingVersion.isPresent()) {
             issue.getFields().setOpeningVersion(openingVersion.get());
         } else {
-            log.warn("Project [{}] issue [{}] has no opening version.",
-                    projectKey, issue.getKey());
+            log.warn("Project [{}] issue [{}] has no opening version.", projectKey, issue.getKey());
         }
+
+        return issue;
     }
 }
