@@ -9,6 +9,10 @@ public class AppConfig {
 
     private String baseUrl;
     private List<ProjectConfig> projects;
+    private CsvConfig csv;
+
+    public CsvConfig getCsv()           { return csv; }
+    public void setCsv(CsvConfig csv)   { this.csv = csv; }
 
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
