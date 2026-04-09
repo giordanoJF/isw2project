@@ -56,16 +56,16 @@ public class Main {
 
         // Delayed instantiation of the consistency orchestrator with custom checks
         ConsistencyOrchestrator checker = new ConsistencyOrchestrator(
-                List.of(
+                List.of( //these are issues checks that don't require project-specific data
                         new IssueHasKeyCheck(),
                         new IssueHasCreatedDateCheck(),
                         new IssueHasFixVersionCheck()
                 ),
-                List.of(
+                List.of( //these are version checks that don't require project-specific data'
                         new VersionHasNameCheck(),
                         new VersionIsReleasedCheck()
                 ),
-                List.of(
+                List.of( //these are issues check that require project-specific data
                         IssueCreatedAfterOldestVersionCheck::new
                 )
         );
