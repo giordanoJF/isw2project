@@ -33,6 +33,12 @@ public class ConsistencyOrchestrator {
             projects.addAll(cleaned);
         }
 
+        cleaned.forEach(projectData ->
+                log.info("Cleaned Project [{}]: {} issues, {} versions downloaded.\n",
+                        projectData.getProjectKey(),
+                        projectData.getIssues().size(),
+                        projectData.getVersions().size()));
+
         return cleaned;
     }
 

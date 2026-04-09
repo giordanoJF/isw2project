@@ -39,10 +39,17 @@ public class DownloaderOrchestrator {
     public List<ProjectData> downloadAll() {
         List<ProjectData> results = new ArrayList<>();
         for (ProjectConfig projectConfig : config.getProjects()) {
-            log.info("Downloading project: {}", projectConfig.getKey());
+            log.info("Downloading project: {}\n", projectConfig.getKey());
             ProjectData data = downloadProject(projectConfig);
             results.add(data);
         }
+
+        results.forEach(projectData ->
+                log.info("Project [{}]: {} issues, {} versions downloaded.\n",
+                        projectData.getProjectKey(),
+                        projectData.getIssues().size(),
+                        projectData.getVersions().size()));
+
         return results;
     }
 

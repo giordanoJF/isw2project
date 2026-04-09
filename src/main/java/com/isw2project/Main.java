@@ -43,33 +43,22 @@ public class Main {
 
         // Download versions and issues
         DownloaderOrchestrator downloader = new DownloaderOrchestrator(config);
-        List<ProjectData> originalResult = downloader.downloadAll();
-        originalResult.forEach(projectData ->
-            log.info("Project [{}]: {} issues, {} versions downloaded.",
-                    projectData.getProjectKey(),
-                    projectData.getIssues().size(),
-                    projectData.getVersions().size()));
-
-        csvExporter.export(originalResult, "originalResult");
+        List<ProjectData> result = downloader.downloadAll();
+        csvExporter.export(result, "originalResult");
 
         // Consistency check
         ConsistencyOrchestrator checker = new ConsistencyOrchestrator(
                 List.of(new IssueHasKeyCheck(), new IssueHasCreatedDateCheck()),
                 List.of(new VersionHasNameCheck(), new VersionIsReleasedCheck())
         );
-        List<ProjectData> filteredResult = checker.clean(originalResult, false);
-        filteredResult.forEach(projectData ->
-            log.info("Cleaned Project [{}]: {} issues, {} versions downloaded.",
-                    projectData.getProjectKey(),
-                    projectData.getIssues().size(),
-                    projectData.getVersions().size()));
-
-        csvExporter.export(filteredResult, "filteredResult");
+        checker.clean(result, true);
+        csvExporter.export(result, "filteredResult");
 
 
         // Enrich issues with opening version
         EnricherOrchestrator enricher = new EnricherOrchestrator(new VersionDateService());
-        enricher.enrichWithOV(filteredResult);
+        enricher.enrichWithOV(result);
+        csvExporter.export(result, "enrichedOvResult");
 
 
 

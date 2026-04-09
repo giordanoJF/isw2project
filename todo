@@ -13,3 +13,7 @@ filters with the config file
 consistency rename to filter
 more package to show orchestrator and services
 drop ticket with created date before any version released of the project
+delete data structure of tickets and version after creating csv
+move logs from main to services
+enricher will do eventually av prediction
+make a check on fixed version

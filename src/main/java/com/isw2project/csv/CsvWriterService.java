@@ -36,7 +36,7 @@ public class CsvWriterService {
                     writer.newLine();
                 }
             }
-            log.info("CSV written: {}", filePath.toAbsolutePath());
+            //log.info("CSV written: {}", filePath.toAbsolutePath());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to write CSV file: " + filePath, e);
         }
