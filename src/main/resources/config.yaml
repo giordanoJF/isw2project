@@ -8,3 +8,16 @@ projects:
 #  - key: KAFKA
 #    jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
 
+csv:
+  outputDir: output
+  issueColumns:
+    key: true
+    summary: false
+    created: true
+    openingVersion: true
+    fixVersions: true
+    affectedVersions: true
+  versionColumns:
+    name: true
+    releaseDate: true
+    released: true
