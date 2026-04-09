@@ -2,15 +2,11 @@ package com.isw2project.csv;
 
 import com.isw2project.config.CsvConfig;
 import com.isw2project.model.ProjectData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 
 public class CsvExporterOrchestrator {
-
-    private static final Logger log = LoggerFactory.getLogger(CsvExporterOrchestrator.class);
 
     private final CsvConfig config;
     private final IssueCsvRowMapperService issueMapper;

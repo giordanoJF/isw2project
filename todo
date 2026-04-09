@@ -17,3 +17,9 @@ delete data structure of tickets and version after creating csv
 move logs from main to services
 enricher will do eventually av prediction
 make a check on fixed version
+check csv logic
+reuse VersionDateService method for the IssueCreatedAfterOldestVersionCheck
+use the same datetime inside csv
+hope that you want the same consistency check for the project used also for cold start
+
+too complex orchestrator consistency, not reuseing method for oldest version, inside main strange check args

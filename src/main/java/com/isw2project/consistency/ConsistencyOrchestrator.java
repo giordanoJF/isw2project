@@ -6,17 +6,23 @@ import com.isw2project.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class ConsistencyOrchestrator {
 
     private final List<IssueCheck> issueChecks;
     private final List<VersionCheck> versionChecks;
     private static final Logger log = LoggerFactory.getLogger(ConsistencyOrchestrator.class);
+    private final List<Function<List<Version>, IssueCheck>> perProjectIssueChecks;
 
-    public ConsistencyOrchestrator(List<IssueCheck> issueChecks, List<VersionCheck> versionChecks) {
-        this.issueChecks   = List.copyOf(issueChecks);
-        this.versionChecks = List.copyOf(versionChecks);
+    public ConsistencyOrchestrator(List<IssueCheck> issueChecks,
+                              List<VersionCheck> versionChecks,
+                              List<Function<List<Version>, IssueCheck>> perProjectIssueChecks) {
+        this.issueChecks           = List.copyOf(issueChecks);
+        this.versionChecks         = List.copyOf(versionChecks);
+        this.perProjectIssueChecks = List.copyOf(perProjectIssueChecks);
     }
 
     /**
@@ -45,28 +51,25 @@ public class ConsistencyOrchestrator {
     // -------------------------------------------------------------------------
 
     private ProjectData cleanProjectData(ProjectData projectData) {
+        List<IssueCheck> allIssueChecks = new ArrayList<>(issueChecks);
+        perProjectIssueChecks.stream()
+                .map(factory -> factory.apply(projectData.getVersions()))
+                .forEach(allIssueChecks::add);
+
         List<Issue> validIssues = projectData.getIssues().stream()
-                .filter(this::passesAllIssueChecks)
+                .filter(issue -> allIssueChecks.stream().allMatch(check -> check.isValid(issue)))
                 .toList();
 
         List<Version> validVersions = projectData.getVersions().stream()
-                .filter(this::passesAllVersionChecks)
+                .filter(version -> versionChecks.stream().allMatch(check -> check.isValid(version)))
                 .toList();
 
-        int removedIssues   = projectData.getIssues().size() - validIssues.size();
-        int removedVersions = projectData.getVersions().size() - validVersions.size();
-
         log.info("Project [{}]: removed {} inconsistent issues, {} inconsistent versions.",
-                projectData.getProjectKey(), removedIssues, removedVersions);
+                projectData.getProjectKey(),
+                projectData.getIssues().size() - validIssues.size(),
+                projectData.getVersions().size() - validVersions.size());
 
         return new ProjectData(projectData.getProjectKey(), validIssues, validVersions);
     }
 
-    private boolean passesAllIssueChecks(Issue issue) {
-        return issueChecks.stream().allMatch(check -> check.isValid(issue));
-    }
-
-    private boolean passesAllVersionChecks(Version version) {
-        return versionChecks.stream().allMatch(check -> check.isValid(version));
-    }
 }

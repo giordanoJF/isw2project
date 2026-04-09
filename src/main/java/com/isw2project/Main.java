@@ -3,10 +3,7 @@ package com.isw2project;
 import com.isw2project.config.AppConfig;
 import com.isw2project.config.ConfigLoader;
 import com.isw2project.consistency.ConsistencyOrchestrator;
-import com.isw2project.consistency.checks.IssueHasCreatedDateCheck;
-import com.isw2project.consistency.checks.IssueHasKeyCheck;
-import com.isw2project.consistency.checks.VersionHasNameCheck;
-import com.isw2project.consistency.checks.VersionIsReleasedCheck;
+import com.isw2project.consistency.checks.*;
 import com.isw2project.csv.CsvExporterOrchestrator;
 import com.isw2project.csv.CsvWriterService;
 import com.isw2project.csv.IssueCsvRowMapperService;
@@ -31,7 +28,12 @@ public class Main {
     static void main() {
 
         log.info("\n\n##### Starting Main #####\n");
+
+        // Load the configuration
         AppConfig config = ConfigLoader.load("config.yaml");
+
+        // Instantiate the downloader orchestrator
+        DownloaderOrchestrator downloader = new DownloaderOrchestrator(config);
 
         // Instantiate the csv orchestrator
         CsvExporterOrchestrator csvExporter = new CsvExporterOrchestrator(
@@ -41,26 +43,40 @@ public class Main {
                 new CsvWriterService()
         );
 
+        // Instantiate the enricher orchestrator
+        EnricherOrchestrator enricher = new EnricherOrchestrator(new VersionDateService());
+
+
+
+
+
         // Download versions and issues
-        DownloaderOrchestrator downloader = new DownloaderOrchestrator(config);
         List<ProjectData> result = downloader.downloadAll();
         csvExporter.export(result, "originalResult");
 
-        // Consistency check
+        // Delayed instantiation of the consistency orchestrator with custom checks
         ConsistencyOrchestrator checker = new ConsistencyOrchestrator(
-                List.of(new IssueHasKeyCheck(), new IssueHasCreatedDateCheck()),
-                List.of(new VersionHasNameCheck(), new VersionIsReleasedCheck())
+                List.of(
+                        new IssueHasKeyCheck(),
+                        new IssueHasCreatedDateCheck(),
+                        new IssueHasFixVersionCheck()
+                ),
+                List.of(
+                        new VersionHasNameCheck(),
+                        new VersionIsReleasedCheck()
+                ),
+                List.of(
+                        IssueCreatedAfterOldestVersionCheck::new
+                )
         );
+
+        // Consistency check
         checker.clean(result, true);
         csvExporter.export(result, "filteredResult");
 
-
         // Enrich issues with opening version
-        EnricherOrchestrator enricher = new EnricherOrchestrator(new VersionDateService());
-        enricher.enrichWithOV(result);
+        enricher.enrichWithOV(result, true);
         csvExporter.export(result, "enrichedOvResult");
-
-
 
         log.info("Done.");
     }
