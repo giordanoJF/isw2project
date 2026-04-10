@@ -23,3 +23,24 @@ use the same datetime inside csv
 hope that you want the same consistency check for the project used also for cold start
 
 too complex orchestrator consistency, not reuseing method for oldest version, inside main strange check args
+
+fixed after opening check
+implement check just for some projects
+check if fix is after equal oldest project version (should be included in other check because if
+    fixed is after opening, and opening is after o equal oldest project version, then the same for fixed
+
+if multiple fixed? -> take the most recent one
+
+fix after opening check seems to be not working
+
+make some static classes
+
+will it not works if i enrich before checks? i say so because i neet to ernich before according to check on the Opening version
+
+-----------------------
+
+enrich with one fixed should map also the other fixed ( if more than one) to AV (only if av are not present)
+think about removing the hard check on the opening version strictly >= oldest version, same for fixed ( will remove a lot)
+start the report
+check also keep and paper notebook
+add a counter for each check how many issues are removed

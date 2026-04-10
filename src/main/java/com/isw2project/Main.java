@@ -10,7 +10,7 @@ import com.isw2project.csv.IssueCsvRowMapperService;
 import com.isw2project.csv.VersionCsvRowMapperService;
 import com.isw2project.downloader.DownloaderOrchestrator;
 import com.isw2project.enricher.EnricherOrchestrator;
-import com.isw2project.enricher.VersionDateService;
+import com.isw2project.enricher.VersionOpsService;
 import com.isw2project.model.ProjectData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,8 @@ public class Main {
         );
 
         // Instantiate the enricher orchestrator
-        EnricherOrchestrator enricher = new EnricherOrchestrator(new VersionDateService());
+        EnricherOrchestrator enricher = new EnricherOrchestrator(
+                new VersionOpsService());
 
 
 
@@ -56,27 +57,35 @@ public class Main {
 
         // Delayed instantiation of the consistency orchestrator with custom checks
         ConsistencyOrchestrator checker = new ConsistencyOrchestrator(
-                List.of( //these are issues checks that don't require project-specific data
+                List.of(
+                        //these are issues checks that don't require project-specific data
                         new IssueHasKeyCheck(),
                         new IssueHasCreatedDateCheck(),
-                        new IssueHasFixVersionCheck()
+                        new IssueHasFixVersionCheck(),
+                        new IssueFixVersionHasReleaseDateCheck(),
+                        new IssueFixVersionAfterOpeningVersionCheck()
                 ),
-                List.of( //these are version checks that don't require project-specific data'
+                List.of(
+                        //these are version checks that don't require project-specific data'
                         new VersionHasNameCheck(),
-                        new VersionIsReleasedCheck()
+                        new VersionIsReleasedCheck(),
+                        new VersionHasReleaseDateCheck()
                 ),
-                List.of( //these are issues check that require project-specific data
+                List.of(
+                        //these are issues check that require project-specific data
                         IssueCreatedAfterOldestVersionCheck::new
                 )
         );
 
+        // Enrich issues
+        // we need to enrich before the checks, we need the OV
+        enricher.enrichWithOV(result, true);
+        enricher.enrichWithFixVersion(result, true);
+        csvExporter.export(result, "enrichedResult");
+
         // Consistency check
         checker.clean(result, true);
         csvExporter.export(result, "filteredResult");
-
-        // Enrich issues with opening version
-        enricher.enrichWithOV(result, true);
-        csvExporter.export(result, "enrichedOvResult");
 
         log.info("Done.");
     }
