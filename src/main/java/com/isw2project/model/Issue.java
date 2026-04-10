@@ -69,6 +69,7 @@ public class Issue {
         public String getUpdated()    { return updated; }
         public List<Version> getAffectedVersions() { return affectedVersions; }
         public List<Version> getFixVersions() { return fixVersions; }
+        public void setFixVersions(List<Version> versions) { fixVersions = versions; }
         public Version getOpeningVersion()              { return openingVersion; }
         public void setOpeningVersion(Version version)  { openingVersion = version; }
 
