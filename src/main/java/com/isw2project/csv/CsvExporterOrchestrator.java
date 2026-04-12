@@ -28,7 +28,6 @@ public class CsvExporterOrchestrator {
     }
 
     private void exportProject(ProjectData projectData, String subDir) {
-        //log.info("Exporting CSV for project [{}] into [{}]", projectData.getProjectKey(), subDir);
         exportIssues(projectData, subDir);
         exportVersions(projectData, subDir);
     }

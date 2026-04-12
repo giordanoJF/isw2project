@@ -42,4 +42,7 @@ public class Version {
         Version version = (Version) o;
         return java.util.Objects.equals(id, version.id);
     }
+
+    @Override
+    public int hashCode() { return java.util.Objects.hash(id); }
 }

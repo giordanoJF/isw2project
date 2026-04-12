@@ -23,7 +23,6 @@ public class IssueDownloaderService {
 
     List<Issue> downloadIssues(ProjectConfig projectConfig) {
         String jql = JqlBuilderService.build(projectConfig.getKey(), projectConfig.getJql());
-        //log.info("  JQL: {}", jql);
 
         List<Issue> issues = new ArrayList<>();
         int startAt = 0;

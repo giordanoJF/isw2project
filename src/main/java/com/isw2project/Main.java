@@ -77,6 +77,7 @@ public class Main {
         cleaned = consistency.checkIssueFixVersionHasReleaseDate(cleaned);
         cleaned = consistency.checkIssueCreatedAfterOldestVersion(cleaned);
         cleaned = consistency.checkIssueFixVersionAfterOpeningVersion(cleaned);
+        cleaned = consistency.checkIssueFixVersionAfterAffectedVersion(cleaned);
         csvExporter.export(cleaned, "checkedResult");
 
         log.info("Done.");
