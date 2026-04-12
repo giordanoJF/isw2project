@@ -1,12 +1,12 @@
 package com.isw2project.consistency;
 
+import com.isw2project.consistency.checks.*;
 import com.isw2project.model.Issue;
 import com.isw2project.model.ProjectData;
 import com.isw2project.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -14,54 +14,94 @@ public class ConsistencyOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(ConsistencyOrchestrator.class);
 
-    private final List<IssueCheck> issueChecks;
-    private final List<VersionCheck> versionChecks;
-    private final List<Function<List<Version>, IssueCheck>> perProjectIssueChecks;
-
-    public ConsistencyOrchestrator(List<IssueCheck> issueChecks,
-                                   List<VersionCheck> versionChecks,
-                                   List<Function<List<Version>, IssueCheck>> perProjectIssueChecks) {
-        this.issueChecks           = List.copyOf(issueChecks);
-        this.versionChecks         = List.copyOf(versionChecks);
-        this.perProjectIssueChecks = List.copyOf(perProjectIssueChecks);
+    public List<ProjectData> checkIssueHasKey(List<ProjectData> projects) {
+        return applyIssueCheck(projects, new IssueHasKeyCheck());
     }
 
-    public List<ProjectData> clean(List<ProjectData> projects, boolean updateOriginal) {
-        List<ProjectData> cleaned = projects.stream()
-                .map(this::cleanProjectData)
-                .toList();
-
-        if (updateOriginal) {
-            projects.clear();
-            projects.addAll(cleaned);
-        }
-
-        return cleaned;
+    public List<ProjectData> checkIssueHasCreatedDate(List<ProjectData> projects) {
+        return applyIssueCheck(projects, new IssueHasCreatedDateCheck());
     }
 
-    private ProjectData cleanProjectData(ProjectData projectData) {
-        // Filtering logic lives here rather than in a dedicated service because
-        // it is a trivial two-line stream with no independent reason to change.
-        // If check prioritization, weighting, or conditional logic is added in
-        // the future, then extract.
-        List<IssueCheck> allIssueChecks = new ArrayList<>(issueChecks);
-        perProjectIssueChecks.stream()
-                .map(factory -> factory.apply(projectData.getVersions()))
-                .forEach(allIssueChecks::add);
+    public List<ProjectData> checkIssueHasFixVersion(List<ProjectData> projects) {
+        return applyIssueCheck(projects, new IssueHasFixVersionCheck());
+    }
 
-        List<Version> validVersions = projectData.getVersions().stream()
-                .filter(version -> versionChecks.stream().allMatch(check -> check.isValid(version)))
+    public List<ProjectData> checkIssueFixVersionHasReleaseDate(List<ProjectData> projects) {
+        return applyIssueCheck(projects, new IssueFixVersionHasReleaseDateCheck());
+    }
+
+    public List<ProjectData> checkIssueFixVersionAfterOpeningVersion(List<ProjectData> projects) {
+        return applyIssueCheck(projects, new IssueFixVersionAfterEqualOpeningVersionCheck());
+    }
+
+    public List<ProjectData> checkIssueCreatedAfterOldestVersion(List<ProjectData> projects) {
+        // per-project check — each project uses its own version list
+        return applyPerProjectIssueCheck(projects,
+                IssueCreatedAfterOldestVersionCheck::new);
+    }
+
+    public List<ProjectData> checkVersionHasName(List<ProjectData> projects) {
+        return applyVersionCheck(projects, new VersionHasNameCheck());
+    }
+
+    public List<ProjectData> checkVersionIsReleased(List<ProjectData> projects) {
+        return applyVersionCheck(projects, new VersionIsReleasedCheck());
+    }
+
+    public List<ProjectData> checkVersionHasReleaseDate(List<ProjectData> projects) {
+        return applyVersionCheck(projects, new VersionHasReleaseDateCheck());
+    }
+
+    // -------------------------------------------------------------------------
+
+    private List<ProjectData> applyIssueCheck(List<ProjectData> projects, IssueCheck check) {
+        return projects.stream()
+                .map(p -> {
+                    List<Issue> valid = p.getIssues().stream()
+                            .filter(check::isValid)
+                            .toList();
+                    logIssueCheck(p.getProjectKey(), check.getClass().getSimpleName(),
+                            p.getIssues().size() - valid.size(), valid.size());
+                    return new ProjectData(p.getProjectKey(), valid, p.getVersions());
+                })
                 .toList();
+    }
 
-        List<Issue> validIssues = projectData.getIssues().stream()
-                .filter(issue -> allIssueChecks.stream().allMatch(check -> check.isValid(issue)))
+    private List<ProjectData> applyPerProjectIssueCheck(List<ProjectData> projects,
+                                                        Function<List<Version>, IssueCheck> factory) {
+        return projects.stream()
+                .map(p -> {
+                    IssueCheck check = factory.apply(p.getVersions());
+                    List<Issue> valid = p.getIssues().stream()
+                            .filter(check::isValid)
+                            .toList();
+                    logIssueCheck(p.getProjectKey(), check.getClass().getSimpleName(),
+                            p.getIssues().size() - valid.size(), valid.size());
+                    return new ProjectData(p.getProjectKey(), valid, p.getVersions());
+                })
                 .toList();
+    }
 
-        log.info("Project [{}]: removed {} inconsistent issues, {} inconsistent versions.",
-                projectData.getProjectKey(),
-                projectData.getIssues().size() - validIssues.size(),
-                projectData.getVersions().size() - validVersions.size());
+    private List<ProjectData> applyVersionCheck(List<ProjectData> projects, VersionCheck check) {
+        return projects.stream()
+                .map(p -> {
+                    List<Version> valid = p.getVersions().stream()
+                            .filter(check::isValid)
+                            .toList();
+                    logVersionCheck(p.getProjectKey(), check.getClass().getSimpleName(),
+                            p.getVersions().size() - valid.size(), valid.size());
+                    return new ProjectData(p.getProjectKey(), p.getIssues(), valid);
+                })
+                .toList();
+    }
 
-        return new ProjectData(projectData.getProjectKey(), validIssues, validVersions);
+    private void logIssueCheck(String projectKey, String checkName, int removed, int remaining) {
+        log.info("Project [{}] issue check [{}]: removed {} issues ({} remaining).",
+                projectKey, checkName, removed, remaining);
+    }
+
+    private void logVersionCheck(String projectKey, String checkName, int removed, int remaining) {
+        log.info("Project [{}] version check [{}]: removed {} versions ({} remaining).",
+                projectKey, checkName, removed, remaining);
     }
 }

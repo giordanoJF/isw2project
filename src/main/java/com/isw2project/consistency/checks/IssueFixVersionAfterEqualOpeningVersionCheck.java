@@ -7,7 +7,7 @@ import com.isw2project.model.Version;
 import java.time.LocalDate;
 import java.util.List;
 
-public class IssueFixVersionAfterOpeningVersionCheck implements IssueCheck {
+public class IssueFixVersionAfterEqualOpeningVersionCheck implements IssueCheck {
 
     @Override
     public boolean isValid(Issue issue) {
