@@ -56,6 +56,11 @@ public class ConsistencyOrchestrator {
         return applyIssueCheck(projects, new IssueFixVersionAfterAffectedVersionCheck());
     }
 
+    public List<ProjectData> checkIssueAllVersionsHaveReleaseDate(List<ProjectData> projects) {
+        return applyIssueCheck(projects, new IssueAllVersionsHaveReleaseDateCheck());
+    }
+
+
     // -------------------------------------------------------------------------
 
     private List<ProjectData> applyIssueCheck(List<ProjectData> projects, IssueCheck check) {
