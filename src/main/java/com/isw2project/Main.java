@@ -97,6 +97,9 @@ public class Main {
         // Proportion
         // compute P from cleaned dataset, apply to same dataset
         proportionOrchestrator.applyProportion(cleaned, cleaned);
+
+        // Remove last issues with no AV
+        cleaned = consistency.checkIssueHasAffectedVersion(cleaned);
         csvExporter.export(cleaned, "proportionResult");
 
         log.info("=== Post-proportion validation ===");

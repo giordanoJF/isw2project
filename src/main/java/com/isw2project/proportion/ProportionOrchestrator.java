@@ -56,8 +56,8 @@ public class ProportionOrchestrator {
 
         long after = countIssuesWithoutValidAV(projectData);
 
-        log.info("Project [{}] proportion applied: {} issues received predicted AV.\n",
-                projectData.getProjectKey(), before - after);
+        log.info("Project [{}] proportion applied: {} issues received predicted AV, {} could not be predicted.",
+                projectData.getProjectKey(), before - after, after);
     }
 
     private long countIssuesWithoutValidAV(ProjectData projectData) {
