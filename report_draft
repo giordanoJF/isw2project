@@ -11,3 +11,6 @@ A pure orchestrator would just coordinate calls to other classes without doing a
      or has its own reason to change independently.
        It is an orchestrator with a small amount of unavoidable logic, which is acceptable.
        The moment the filtering logic grows i can extract a FilterService and restore the pure orchestrator role.
+
+
+probably there is a little of redundancy between checks and enrichers

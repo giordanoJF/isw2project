@@ -25,7 +25,7 @@ public class VersionDownloaderService {
         for (JsonNode node : versionsNode) {
             versions.add(objectMapper.convertValue(node, Version.class));
         }
-        log.info("  Versions fetched: {}", versions.size());
+        //log.info("  Versions fetched: {}", versions.size());
         return versions;
     }
 }

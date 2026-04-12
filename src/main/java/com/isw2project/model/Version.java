@@ -34,4 +34,12 @@ public class Version {
     public String toString() {
         return String.format("Version{name='%s', released=%s, date='%s'}", name, released, releaseDate);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Version version = (Version) o;
+        return java.util.Objects.equals(id, version.id);
+    }
 }
