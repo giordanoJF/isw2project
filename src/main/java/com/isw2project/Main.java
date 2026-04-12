@@ -11,6 +11,9 @@ import com.isw2project.downloader.DownloaderOrchestrator;
 import com.isw2project.enricher.EnricherOrchestrator;
 import com.isw2project.enricher.VersionService;
 import com.isw2project.model.ProjectData;
+import com.isw2project.proportion.InjectedVersionService;
+import com.isw2project.proportion.ProportionOrchestrator;
+import com.isw2project.proportion.ProportionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +52,14 @@ public class Main {
         // Instantiate the consistency orchestrator
         ConsistencyOrchestrator consistency = new ConsistencyOrchestrator();
 
+        // Instantiate the proportion orchestrator
+        ProportionOrchestrator proportionOrchestrator = new ProportionOrchestrator(
+                new ProportionService(),
+                new InjectedVersionService()
+        );
+
+
+
 
 
 
@@ -78,7 +89,28 @@ public class Main {
         cleaned = consistency.checkIssueCreatedAfterOldestVersion(cleaned);
         cleaned = consistency.checkIssueFixVersionAfterOpeningVersion(cleaned);
         cleaned = consistency.checkIssueFixVersionAfterAffectedVersion(cleaned);
+        cleaned = consistency.checkIssueAllVersionsHaveReleaseDate(cleaned);
+
+
         csvExporter.export(cleaned, "checkedResult");
+
+        // Proportion
+        // compute P from cleaned dataset, apply to same dataset
+        proportionOrchestrator.applyProportion(cleaned, cleaned);
+        csvExporter.export(cleaned, "proportionResult");
+
+        log.info("=== Post-proportion validation ===");
+        consistency.checkVersionIsReleased(cleaned);
+        consistency.checkVersionHasName(cleaned);
+        consistency.checkVersionHasReleaseDate(cleaned);
+        consistency.checkIssueHasKey(cleaned);
+        consistency.checkIssueHasCreatedDate(cleaned);
+        consistency.checkIssueHasFixVersion(cleaned);
+        consistency.checkIssueFixVersionHasReleaseDate(cleaned);
+        consistency.checkIssueCreatedAfterOldestVersion(cleaned);
+        consistency.checkIssueFixVersionAfterOpeningVersion(cleaned);
+        consistency.checkIssueFixVersionAfterAffectedVersion(cleaned);
+        consistency.checkIssueAllVersionsHaveReleaseDate(cleaned);
 
         log.info("Done.");
     }

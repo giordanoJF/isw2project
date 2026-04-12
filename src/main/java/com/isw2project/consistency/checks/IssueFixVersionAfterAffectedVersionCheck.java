@@ -16,10 +16,12 @@ public class IssueFixVersionAfterAffectedVersionCheck implements IssueCheck {
         List<Version> fixVersions      = issue.getFields().getFixVersions();
         List<Version> affectedVersions = issue.getFields().getAffectedVersions();
 
-        if (fixVersions == null || fixVersions.isEmpty())      return false;
-        if (affectedVersions == null || affectedVersions.isEmpty()) return false;
-
+        if (fixVersions == null || fixVersions.isEmpty()) return false;
         if (fixVersions.getFirst().getReleaseDate() == null) return false;
+
+        // if no AV, pass — proportion will predict IV later
+        if (affectedVersions == null || affectedVersions.isEmpty()) return true;
+
         LocalDate fixDate = LocalDate.parse(fixVersions.getFirst().getReleaseDate());
 
         return affectedVersions.stream()

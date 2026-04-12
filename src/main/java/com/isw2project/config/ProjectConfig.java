@@ -6,7 +6,7 @@ package com.isw2project.config;
 public class ProjectConfig {
 
     private String key;
-    private int maxResults = 100;
+    private int maxResults = 200;
     private String jql;
 
     public String getKey() { return key; }
