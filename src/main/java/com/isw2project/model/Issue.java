@@ -2,6 +2,9 @@ package com.isw2project.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -73,6 +76,14 @@ public class Issue {
         public void setFixVersions(List<Version> versions) { fixVersions = versions; }
         public Version getOpeningVersion() { return openingVersion; }
         public void setOpeningVersion(Version version)  { openingVersion = version; }
+
+        public Version getInjectedVersion() {
+            if (affectedVersions == null || affectedVersions.isEmpty()) return null;
+            return affectedVersions.stream()
+                    .filter(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank())
+                    .min(Comparator.comparing(v -> LocalDate.parse(v.getReleaseDate())))
+                    .orElse(null);
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
