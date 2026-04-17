@@ -120,4 +120,27 @@ public class VersionService {
         issue.getFields().setFixVersions(List.of(mostRecent.get()));
         issue.getFields().setAffectedVersions(inferred);
     }
+
+    public void removeZombieVersionReferences(Issue issue, List<Version> projectVersions) {
+        if (issue.getFields().getFixVersions() != null) {
+            issue.getFields().setFixVersions(
+                    issue.getFields().getFixVersions().stream()
+                            .filter(projectVersions::contains)
+                            .toList()
+            );
+        }
+
+        if (issue.getFields().getAffectedVersions() != null) {
+            issue.getFields().setAffectedVersions(
+                    issue.getFields().getAffectedVersions().stream()
+                            .filter(projectVersions::contains)
+                            .toList()
+            );
+        }
+
+        if (issue.getFields().getOpeningVersion() != null
+                && !projectVersions.contains(issue.getFields().getOpeningVersion())) {
+            issue.getFields().setOpeningVersion(null);
+        }
+    }
 }

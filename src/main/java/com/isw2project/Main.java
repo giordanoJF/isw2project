@@ -91,6 +91,8 @@ public class Main {
         cleaned = consistency.checkIssueFixVersionAfterAffectedVersion(cleaned);
         cleaned = consistency.checkIssueAllVersionsHaveReleaseDate(cleaned);
 
+        // Remove zombie versions
+        cleaned = enricher.removeZombieVersionReferences(cleaned);
 
         csvExporter.export(cleaned, "checkedResult");
 
