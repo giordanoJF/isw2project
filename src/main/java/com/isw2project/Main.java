@@ -29,8 +29,6 @@ public class Main {
 
     static void main() {
 
-        log.info("\n\n##### Starting Main #####\n");
-
         // Load the configuration
         AppConfig config = ConfigLoader.load("config.yaml");
 
@@ -116,7 +114,5 @@ public class Main {
         consistency.checkIssueFixVersionAfterOpeningVersion(cleaned);
         consistency.checkIssueFixVersionAfterAffectedVersion(cleaned);
         consistency.checkIssueAllVersionsHaveReleaseDate(cleaned);
-
-        log.info("Done.");
     }
 }

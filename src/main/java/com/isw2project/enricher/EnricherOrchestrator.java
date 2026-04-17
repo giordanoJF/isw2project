@@ -1,8 +1,6 @@
 package com.isw2project.enricher;
 
-import com.isw2project.model.Issue;
 import com.isw2project.model.ProjectData;
-
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +60,7 @@ public class EnricherOrchestrator {
     }
 
     public List<ProjectData> cleanIssueVersionsWithoutReleaseDate(List<ProjectData> projects) {
-        log.info("Starting version date cleaning for {} projects.", projects.size());
+        log.info("Starting version date cleaning");
 
         return projects.stream()
                 .map(p -> {
@@ -122,33 +120,12 @@ public class EnricherOrchestrator {
     public List<ProjectData> removeZombieVersionReferences(List<ProjectData> projects) {
         log.info("Starting zombie version reference removal for {} projects.", projects.size());
 
-        List<ProjectData> cleaned = projects.stream()
-                .map(p -> {
-                    int totalRemoved = 0;
-                    for (Issue issue : p.getIssues()) {
-                        int fvBefore = issue.getFields().getFixVersions() != null
-                                ? issue.getFields().getFixVersions().size() : 0;
-                        int avBefore = issue.getFields().getAffectedVersions() != null
-                                ? issue.getFields().getAffectedVersions().size() : 0;
-                        boolean hadOV = issue.getFields().getOpeningVersion() != null;
+        projects.forEach(p -> {
+            int totalRemoved = versionService.removeZombieVersionReferences(p);
+            log.info("Project [{}] zombie version removal: {} version references removed across all issues.\n",
+                    p.getProjectKey(), totalRemoved);
+        });
 
-                        versionService.removeZombieVersionReferences(issue, p.getVersions());
-
-                        int fvAfter = issue.getFields().getFixVersions() != null
-                                ? issue.getFields().getFixVersions().size() : 0;
-                        int avAfter = issue.getFields().getAffectedVersions() != null
-                                ? issue.getFields().getAffectedVersions().size() : 0;
-                        boolean hasOV = issue.getFields().getOpeningVersion() != null;
-
-                        totalRemoved += (fvBefore - fvAfter) + (avBefore - avAfter) + (hadOV && !hasOV ? 1 : 0);
-                    }
-                    log.info("Project [{}] zombie version removal: {} version references removed across all issues.",
-                            p.getProjectKey(), totalRemoved);
-                    return p;
-                })
-                .toList();
-
-        log.info("Zombie version reference removal completed.\n");
-        return cleaned;
+        return projects;
     }
 }

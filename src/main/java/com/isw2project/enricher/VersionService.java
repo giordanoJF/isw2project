@@ -1,6 +1,7 @@
 package com.isw2project.enricher;
 
 import com.isw2project.model.Issue;
+import com.isw2project.model.ProjectData;
 import com.isw2project.model.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class VersionService {
         if (openingVersion.isPresent()) {
             issue.getFields().setOpeningVersion(openingVersion.get());
         } else {
-            log.warn("Project [{}] issue [{}] has created date but no possible opening version.", projectKey, issue.getKey());
+            //log.warn("Project [{}] issue [{}] has created date but no possible opening version.", projectKey, issue.getKey());
         }
     }
 
@@ -41,11 +42,10 @@ public class VersionService {
                 .max(Comparator.comparing(v -> LocalDate.parse(v.getReleaseDate(), FORMATTER)));
     }
 
-
     public void assignMostRecentFixVersion(Issue issue) {
         List<Version> fixVersions = issue.getFields().getFixVersions();
         if (fixVersions == null || fixVersions.isEmpty()) {
-            log.warn("Issue [{}] has no fix versions", issue.getKey());
+            //log.warn("Issue [{}] has no fix versions", issue.getKey());
             return;
         }
 
@@ -56,7 +56,6 @@ public class VersionService {
             log.warn("Issue [{}] has at least one fix version but with no valid release date.", issue.getKey());
         }
     }
-
 
     private Optional<Version> findMostRecent(List<Version> versions) {
         if (versions == null || versions.isEmpty()) return Optional.empty();
@@ -71,9 +70,9 @@ public class VersionService {
             List<Version> cleaned = issue.getFields().getFixVersions().stream()
                     .filter(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank())
                     .toList();
-            if (cleaned.size() < issue.getFields().getFixVersions().size())
-                log.warn("Issue [{}] had {} fix versions without release date removed.",
-                        issue.getKey(), issue.getFields().getFixVersions().size() - cleaned.size());
+//            if (cleaned.size() < issue.getFields().getFixVersions().size())
+//                log.warn("Issue [{}] had {} fix versions without release date removed.",
+//                        issue.getKey(), issue.getFields().getFixVersions().size() - cleaned.size());
             issue.getFields().setFixVersions(cleaned);
         }
 
@@ -81,16 +80,16 @@ public class VersionService {
             List<Version> cleaned = issue.getFields().getAffectedVersions().stream()
                     .filter(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank())
                     .toList();
-            if (cleaned.size() < issue.getFields().getAffectedVersions().size())
-                log.warn("Issue [{}] had {} affected versions without release date removed.",
-                        issue.getKey(), issue.getFields().getAffectedVersions().size() - cleaned.size());
+//            if (cleaned.size() < issue.getFields().getAffectedVersions().size())
+//                log.warn("Issue [{}] had {} affected versions without release date removed.",
+//                        issue.getKey(), issue.getFields().getAffectedVersions().size() - cleaned.size());
             issue.getFields().setAffectedVersions(cleaned);
         }
 
         if (issue.getFields().getOpeningVersion() != null
                 && (issue.getFields().getOpeningVersion().getReleaseDate() == null
                 || issue.getFields().getOpeningVersion().getReleaseDate().isBlank())) {
-            log.warn("Issue [{}] opening version without release date removed.", issue.getKey());
+            //log.warn("Issue [{}] opening version without release date removed.", issue.getKey());
             issue.getFields().setOpeningVersion(null);
         }
     }
@@ -121,26 +120,41 @@ public class VersionService {
         issue.getFields().setAffectedVersions(inferred);
     }
 
-    public void removeZombieVersionReferences(Issue issue, List<Version> projectVersions) {
+    public int removeZombieVersionReferences(Issue issue, List<Version> projectVersions) {
+        int removed = 0;
+
         if (issue.getFields().getFixVersions() != null) {
+            int before = issue.getFields().getFixVersions().size();
             issue.getFields().setFixVersions(
                     issue.getFields().getFixVersions().stream()
                             .filter(projectVersions::contains)
                             .toList()
             );
+            removed += before - issue.getFields().getFixVersions().size();
         }
 
         if (issue.getFields().getAffectedVersions() != null) {
+            int before = issue.getFields().getAffectedVersions().size();
             issue.getFields().setAffectedVersions(
                     issue.getFields().getAffectedVersions().stream()
                             .filter(projectVersions::contains)
                             .toList()
             );
+            removed += before - issue.getFields().getAffectedVersions().size();
         }
 
         if (issue.getFields().getOpeningVersion() != null
                 && !projectVersions.contains(issue.getFields().getOpeningVersion())) {
             issue.getFields().setOpeningVersion(null);
+            removed++;
         }
+
+        return removed;
+    }
+
+    public int removeZombieVersionReferences(ProjectData project) {
+        return project.getIssues().stream()
+                .mapToInt(issue -> removeZombieVersionReferences(issue, project.getVersions()))
+                .sum();
     }
 }

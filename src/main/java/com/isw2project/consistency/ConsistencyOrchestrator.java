@@ -109,12 +109,12 @@ public class ConsistencyOrchestrator {
     }
 
     private void logIssueCheck(String projectKey, String checkName, int removed, int remaining) {
-        log.info("Project [{}] issue check [{}]: removed {} issues ({} remaining).",
+        log.info("Project [{}] issue check [{}]: removed {} issues ({} remaining).\n",
                 projectKey, checkName, removed, remaining);
     }
 
     private void logVersionCheck(String projectKey, String checkName, int removed, int remaining) {
-        log.info("Project [{}] version check [{}]: removed {} versions ({} remaining).",
+        log.info("Project [{}] version check [{}]: removed {} versions ({} remaining).\n",
                 projectKey, checkName, removed, remaining);
     }
 }
