@@ -42,3 +42,6 @@ build/
 output/
 idea/
 /.idea/
+/.idea/*
+/gitclones/
+/gitclones/*

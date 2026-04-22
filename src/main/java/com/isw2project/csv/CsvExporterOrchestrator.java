@@ -2,6 +2,7 @@ package com.isw2project.csv;
 
 import com.isw2project.config.CsvConfig;
 import com.isw2project.model.ProjectData;
+import com.isw2project.model.ReleaseSnapshot;
 
 import java.util.List;
 import java.util.Map;
@@ -11,20 +12,33 @@ public class CsvExporterOrchestrator {
     private final CsvConfig config;
     private final IssueCsvRowMapperService issueMapper;
     private final VersionCsvRowMapperService versionMapper;
+    private final SnapshotCsvRowMapperService snapshotMapper;
     private final CsvWriterService writerService;
 
     public CsvExporterOrchestrator(CsvConfig config,
                                    IssueCsvRowMapperService issueMapper,
                                    VersionCsvRowMapperService versionMapper,
+                                   SnapshotCsvRowMapperService snapshotMapper,
                                    CsvWriterService writerService) {
-        this.config         = config;
-        this.issueMapper    = issueMapper;
-        this.versionMapper  = versionMapper;
-        this.writerService  = writerService;
+        this.config          = config;
+        this.issueMapper     = issueMapper;
+        this.versionMapper   = versionMapper;
+        this.snapshotMapper  = snapshotMapper;
+        this.writerService   = writerService;
     }
 
     public void export(List<ProjectData> projects, String subDir) {
         projects.forEach(project -> exportProject(project, subDir));
+    }
+
+    public void exportSnapshots(List<ReleaseSnapshot> snapshots, String projectKey, String subDir) {
+        List<Map<String, String>> rows = snapshots.stream()
+                .flatMap(release -> release.getClasses().stream())
+                .map(snapshotMapper::map)
+                .toList();
+
+        writerService.write(config.getOutputDir() + "/" + subDir,
+                projectKey + "_snapshots.csv", rows);
     }
 
     private void exportProject(ProjectData projectData, String subDir) {
