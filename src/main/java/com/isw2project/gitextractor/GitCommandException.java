@@ -3,7 +3,7 @@ package com.isw2project.gitextractor;
 /**
  * Thrown when a Git command fails or is interrupted during execution.
  */
-public class GitCommandException extends Exception {
+public class GitCommandException extends RuntimeException {
 
     public GitCommandException(String message) {
         super(message);
