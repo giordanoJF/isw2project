@@ -7,8 +7,7 @@ import java.util.Map;
 
 /**
  * Maps a JavaClassSnapshot to a row compatible with CsvWriterService.
- * Uses LinkedHashMap to preserve column order: java_class_path, release.
- * Follows the same pattern as IssueCsvRowMapperService and VersionCsvRowMapperService.
+ * Column order: java_class_path, release, isBuggy.
  */
 public class SnapshotCsvRowMapperService {
 
@@ -16,6 +15,7 @@ public class SnapshotCsvRowMapperService {
         Map<String, String> row = new LinkedHashMap<>();
         row.put("java_class_path", snapshot.getClassPath());
         row.put("release", snapshot.getRelease());
+        row.put("isBuggy", String.valueOf(snapshot.isBuggy()));
         return row;
     }
 }
