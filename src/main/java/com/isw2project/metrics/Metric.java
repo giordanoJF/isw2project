@@ -2,7 +2,7 @@ package com.isw2project.metrics;
 
 import com.isw2project.gitextractor.GitCommandException;
 
-import java.util.Map;
+
 
 /**
  * A single metric that can be computed for a Java class snapshot.
