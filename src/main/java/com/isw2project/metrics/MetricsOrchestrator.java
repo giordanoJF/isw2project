@@ -71,6 +71,10 @@ public class MetricsOrchestrator {
     /**
      * Computes metrics for the given percentage of snapshots (0.0 to 1.0).
      * For each release, PMD analysis is run once in batch before iterating individual snapshots.
+     *
+     * Code_Smells are shifted by one release: the value assigned to (class, release_N) is the
+     * count computed for (class, release_N-1). Snapshots in the first release get 0 code smells.
+     * This reflects the fact that smells introduced in release N only affect release N+1 onwards.
      */
     public void computeAll(List<ReleaseSnapshot> snapshots, double percentage) {
         int total = snapshots.stream().mapToInt(r -> r.getClasses().size()).sum();
@@ -78,13 +82,17 @@ public class MetricsOrchestrator {
         int processed = 0;
         long batchPmdMs = 0;
 
+        // Holds Code_Smells computed in the previous release, keyed by classPath.
+        // Used to assign the shifted value to the current release.
+        Map<String, String> previousReleaseSmells = new LinkedHashMap<>();
+
         for (ReleaseSnapshot release : snapshots) {
             if (processed >= limit) break;
 
-            // Run PMD once for all files in this release before computing per-snapshot metrics.
-            // Timing is tracked separately since it happens outside the per-snapshot compute loop.
+            // Run PMD on the current release files to get their actual smells.
+            // These will be used as the shifted value for the NEXT release.
             List<Path> releaseFiles = release.getClasses().stream()
-                    .map(s -> s.getCode())
+                    .map(JavaClassSnapshot::getCode)
                     .toList();
             long batchStart = System.nanoTime();
             codeSmellsMetric.analyzeBatch(releaseFiles);
@@ -93,12 +101,32 @@ public class MetricsOrchestrator {
             String gitRef = jiraNameToGitRef.getOrDefault(release.getRelease(), release.getRelease());
             LocalDate releaseDate = jiraNameToReleaseDate.get(release.getRelease());
 
+            // Collect current release smells for ALL files in this release,
+            // regardless of the processing limit. This ensures previousReleaseSmells
+            // is always complete for the next release even when limit cuts mid-release.
+            Map<String, String> currentReleaseSmells = new LinkedHashMap<>();
+            for (JavaClassSnapshot snapshot : release.getClasses()) {
+                currentReleaseSmells.put(snapshot.getClassPath(),
+                        codeSmellsMetric.getCachedSmells(snapshot.getCode()));
+            }
+
             for (JavaClassSnapshot snapshot : release.getClasses()) {
                 if (processed >= limit) break;
+
                 ClassMetricInput input = new ClassMetricInput(snapshot, gitRef, releaseDate);
-                snapshot.setMetrics(computerService.compute(input));
+                Map<String, String> metrics = computerService.compute(input);
+
+                // Override Code_Smells with the value from the previous release (shift by one).
+                // If the class did not exist in the previous release, default to "0".
+                metrics.put(codeSmellsMetric.columnName(),
+                        previousReleaseSmells.getOrDefault(snapshot.getClassPath(), "0"));
+
+
+                snapshot.setMetrics(metrics);
                 processed++;
             }
+
+            previousReleaseSmells = currentReleaseSmells;
         }
 
         log.info("Metrics computed for {}/{} snapshots ({}%).", processed, total,

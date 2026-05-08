@@ -94,8 +94,18 @@ public class CodeSmellsMetric implements Metric {
         }
     }
 
+    /**
+     * Returns the cached violation count for the given file as a String.
+     * Returns "0" if the file was not included in any analyzed batch.
+     * Used by MetricsOrchestrator to read the actual current smells before shifting.
+     */
+    public String getCachedSmells(Path sourceFile) {
+        String key = sourceFile.toAbsolutePath().toString();
+        return String.valueOf(violationCache.getOrDefault(key, 0));
+    }
+
     @Override
-    public String columnName() { return "Code_Smells"; }
+    public String columnName() { return "Previous_Release_Code_Smells"; }
 
     /**
      * Returns the violation count for this snapshot from the cache populated by analyzeBatch().
