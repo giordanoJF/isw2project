@@ -78,6 +78,15 @@ public class ProportionService {
         return -1;
     }
 
+    long countIssuesWithoutValidAV(ProjectData projectData) {
+        return projectData.getIssues().stream()
+                .filter(issue -> issue.getFields().getAffectedVersions() == null
+                        || issue.getFields().getAffectedVersions().isEmpty()
+                        || issue.getFields().getAffectedVersions().stream()
+                        .allMatch(v -> v.getReleaseDate() == null || v.getReleaseDate().isBlank()))
+                .count();
+    }
+
     List<Version> getOrderedVersions(List<Version> versions) {
         return versions.stream()
                 .filter(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank())

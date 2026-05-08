@@ -10,6 +10,7 @@ public class AppConfig {
     private String baseUrl;
     private List<ProjectConfig> projects;
     private CsvConfig csv;
+    private GitConfig git;
 
     public CsvConfig getCsv()           { return csv; }
     public void setCsv(CsvConfig csv)   { this.csv = csv; }
@@ -19,4 +20,7 @@ public class AppConfig {
 
     public List<ProjectConfig> getProjects() { return projects; }
     public void setProjects(List<ProjectConfig> projects) { this.projects = projects; }
+
+    public GitConfig getGit() { return git; }
+    public void setGit(GitConfig git) { this.git = git; }
 }

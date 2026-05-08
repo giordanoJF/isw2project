@@ -28,8 +28,6 @@ public class VersionService {
         Optional<Version> openingVersion = findOpeningVersion(created, versions);
         if (openingVersion.isPresent()) {
             issue.getFields().setOpeningVersion(openingVersion.get());
-        } else {
-            //log.warn("Project [{}] issue [{}] has created date but no possible opening version.", projectKey, issue.getKey());
         }
     }
 
@@ -45,7 +43,6 @@ public class VersionService {
     public void assignMostRecentFixVersion(Issue issue) {
         List<Version> fixVersions = issue.getFields().getFixVersions();
         if (fixVersions == null || fixVersions.isEmpty()) {
-            //log.warn("Issue [{}] has no fix versions", issue.getKey());
             return;
         }
 
@@ -70,9 +67,7 @@ public class VersionService {
             List<Version> cleaned = issue.getFields().getFixVersions().stream()
                     .filter(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank())
                     .toList();
-//            if (cleaned.size() < issue.getFields().getFixVersions().size())
-//                log.warn("Issue [{}] had {} fix versions without release date removed.",
-//                        issue.getKey(), issue.getFields().getFixVersions().size() - cleaned.size());
+
             issue.getFields().setFixVersions(cleaned);
         }
 
@@ -80,16 +75,13 @@ public class VersionService {
             List<Version> cleaned = issue.getFields().getAffectedVersions().stream()
                     .filter(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank())
                     .toList();
-//            if (cleaned.size() < issue.getFields().getAffectedVersions().size())
-//                log.warn("Issue [{}] had {} affected versions without release date removed.",
-//                        issue.getKey(), issue.getFields().getAffectedVersions().size() - cleaned.size());
+
             issue.getFields().setAffectedVersions(cleaned);
         }
 
         if (issue.getFields().getOpeningVersion() != null
                 && (issue.getFields().getOpeningVersion().getReleaseDate() == null
                 || issue.getFields().getOpeningVersion().getReleaseDate().isBlank())) {
-            //log.warn("Issue [{}] opening version without release date removed.", issue.getKey());
             issue.getFields().setOpeningVersion(null);
         }
     }
@@ -118,6 +110,27 @@ public class VersionService {
 
         issue.getFields().setFixVersions(List.of(mostRecent.get()));
         issue.getFields().setAffectedVersions(inferred);
+    }
+
+    public boolean hasVersionsWithoutReleaseDate(Issue issue) {
+        boolean fvMissing = issue.getFields().getFixVersions() != null &&
+                issue.getFields().getFixVersions().stream()
+                        .anyMatch(v -> v.getReleaseDate() == null || v.getReleaseDate().isBlank());
+        boolean avMissing = issue.getFields().getAffectedVersions() != null &&
+                issue.getFields().getAffectedVersions().stream()
+                        .anyMatch(v -> v.getReleaseDate() == null || v.getReleaseDate().isBlank());
+        return fvMissing || avMissing;
+    }
+
+    public boolean hasValidAv(Issue issue) {
+        List<Version> avs = issue.getFields().getAffectedVersions();
+        return avs != null && !avs.isEmpty() &&
+                avs.stream().anyMatch(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank());
+    }
+
+    public boolean hasSingleFvWithDate(Issue issue) {
+        List<Version> fvs = issue.getFields().getFixVersions();
+        return fvs != null && fvs.size() == 1 && fvs.getFirst().getReleaseDate() != null;
     }
 
     public int removeZombieVersionReferences(Issue issue, List<Version> projectVersions) {

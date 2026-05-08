@@ -35,7 +35,7 @@ public class GitLogStatsService {
     // Cache for ref -> date resolutions: there are only as many entries as releases (e.g. 12),
     // so caching avoids spawning one git process per snapshot per metric call (e.g. 15000+).
     private final Map<String, LocalDate> refDateCache = new HashMap<>();
-    // Cache for (filePath, gitRef) -> filtered stats: avoids re-filtering the full commit list
+    //Cache FOR (filePath, gitRef) -> filtered stats: avoids re-filtering the full commit list
     // for every metric call on the same snapshot. Key format: "filePath::gitRef".
     private final Map<String, List<CommitStat>> filteredStatsCache = new HashMap<>();
 
@@ -176,6 +176,9 @@ public class GitLogStatsService {
                 refDateCache.put(gitRef, date);
                 return date;
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while resolving date for ref '{}': {}", gitRef, e.getMessage());
         } catch (Exception e) {
             log.warn("Could not resolve date for ref '{}': {}", gitRef, e.getMessage());
         }

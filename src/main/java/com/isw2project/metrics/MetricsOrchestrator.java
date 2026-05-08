@@ -9,13 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.isw2project.gitextractor.support.GitLogStatsService;
 import com.isw2project.metrics.impl.*;
@@ -79,65 +79,32 @@ public class MetricsOrchestrator {
      */
     public void computeAll(List<ReleaseSnapshot> snapshots, double percentage) {
         int total = snapshots.stream().mapToInt(r -> r.getClasses().size()).sum();
-        int limit = (int) Math.ceil(total * Math.min(1.0, Math.max(0.0, percentage)));
+        int limit = (int) Math.ceil(total * Math.clamp(percentage, 0.0, 1.0));
         int processed = 0;
         long batchPmdMs = 0;
 
-        // Holds Code_Smells computed in the previous release, keyed by classPath.
-        // Used to assign the shifted value to the current release.
+        // Code_Smells are shifted by one release: smells computed for release N are assigned to release N+1.
+        // Snapshots in the first release get "0". Requires strict chronological iteration.
         Map<String, String> previousReleaseSmells = new LinkedHashMap<>();
 
-        // Sort snapshots chronologically by release date before applying the shift.
-        // The snapshot list may not be in strict date order (e.g. Jira version 1.2.2
-        // can appear after 2.0.0-M3 in the list but have an earlier release date).
-        // The shift logic requires strict chronological order to propagate smells correctly.
-        List<ReleaseSnapshot> sortedSnapshots = snapshots.stream()
-                .sorted(Comparator.comparing(r -> jiraNameToReleaseDate.getOrDefault(r.getRelease(), LocalDate.MAX)))
-                .toList();
-
-        for (ReleaseSnapshot release : sortedSnapshots) {
-//            System.out.println("Processing release: " + release.getRelease()
-//                    + " date: " + jiraNameToReleaseDate.get(release.getRelease()));
+        for (ReleaseSnapshot release : sortByReleaseDate(snapshots)) {
             if (processed >= limit) break;
 
-            // Run PMD on the current release files to get their actual smells.
-            // These will be used as the shifted value for the NEXT release.
-            List<Path> releaseFiles = release.getClasses().stream()
-                    .map(JavaClassSnapshot::getCode)
-                    .toList();
             long batchStart = System.nanoTime();
-            codeSmellsMetric.analyzeBatch(releaseFiles);
-            batchPmdMs += java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - batchStart);
+            codeSmellsMetric.analyzeBatch(release.getClasses().stream().map(JavaClassSnapshot::getCode).toList());
+            batchPmdMs += TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - batchStart);
+
+            // Collect smells for ALL classes before the limit check so the next release's
+            // previousReleaseSmells map is always complete even when limit cuts mid-release.
+            Map<String, String> currentReleaseSmells = collectSmellsByClassPath(release);
 
             String gitRef = jiraNameToGitRef.getOrDefault(release.getRelease(), release.getRelease());
             LocalDate releaseDate = jiraNameToReleaseDate.get(release.getRelease());
 
-            // Collect current release smells for ALL files in this release,
-            // regardless of the processing limit. This ensures previousReleaseSmells
-            // is always complete for the next release even when limit cuts mid-release.
-            Map<String, String> currentReleaseSmells = new LinkedHashMap<>();
-            for (JavaClassSnapshot snapshot : release.getClasses()) {
-                String smells = codeSmellsMetric.getCachedSmells(snapshot.getCode());
-                currentReleaseSmells.put(snapshot.getClassPath(), smells);
-
-                // Debug: verify cache is populated correctly after analyzeBatch
-//                if (snapshot.getClassPath().contains("ContactInfo") && release.getRelease().equals("2.0.0-M3")) {
-//                    System.out.println("After analyzeBatch " + release.getRelease()
-//                            + " ContactInfo smells from cache: " + smells);
-//                }
-            }
-
             for (JavaClassSnapshot snapshot : release.getClasses()) {
                 if (processed >= limit) break;
-
-                ClassMetricInput input = new ClassMetricInput(snapshot, gitRef, releaseDate);
-                Map<String, String> metrics = computerService.compute(input);
-
-                // Override Code_Smells with the value from the previous release (shift by one).
-                // If the class did not exist in the previous release, default to "0".
-                String shiftedValue = previousReleaseSmells.getOrDefault(snapshot.getClassPath(), "0");
-                metrics.put(codeSmellsMetric.columnName(), shiftedValue);
-
+                Map<String, String> metrics = computerService.compute(new ClassMetricInput(snapshot, gitRef, releaseDate));
+                metrics.put(codeSmellsMetric.columnName(), previousReleaseSmells.getOrDefault(snapshot.getClassPath(), "0"));
                 snapshot.setMetrics(metrics);
                 processed++;
             }
@@ -145,11 +112,23 @@ public class MetricsOrchestrator {
             previousReleaseSmells = currentReleaseSmells;
         }
 
-        log.info("Metrics computed for {}/{} snapshots ({}%).", processed, total,
-                Math.round(percentage * 100));
-        log.info("PMD batch analysis total time: {}ms ({} releases analyzed).",
-                batchPmdMs, sortedSnapshots.size());
+        log.info("Metrics computed for {}/{} snapshots ({}%).", processed, total, Math.round(percentage * 100));
+        log.info("PMD batch analysis total time: {}ms.", batchPmdMs);
         computerService.logTimingSummary();
+    }
+
+    private List<ReleaseSnapshot> sortByReleaseDate(List<ReleaseSnapshot> snapshots) {
+        return snapshots.stream()
+                .sorted(Comparator.comparing(r -> jiraNameToReleaseDate.getOrDefault(r.getRelease(), LocalDate.MAX)))
+                .toList();
+    }
+
+    private Map<String, String> collectSmellsByClassPath(ReleaseSnapshot release) {
+        Map<String, String> smells = new LinkedHashMap<>();
+        for (JavaClassSnapshot snapshot : release.getClasses()) {
+            smells.put(snapshot.getClassPath(), codeSmellsMetric.getCachedSmells(snapshot.getCode()));
+        }
+        return smells;
     }
 
     private Map<String, LocalDate> buildReleaseDateMap(List<Version> versions) {

@@ -22,12 +22,11 @@ public class EnricherOrchestrator {
                 .map(p -> {
                     p.getIssues().forEach(issue ->
                             versionService.assignOpeningVersion(issue, p.getVersions(), p.getProjectKey()));
-
                     long success = p.getIssues().stream()
                             .filter(issue -> issue.getFields().getOpeningVersion() != null)
                             .count();
                     log.info("Project [{}] opening version enrichment: {} enriched, {} not enriched.\n",
-                            p.getProjectKey(), success, p.getIssues().size()-success);
+                            p.getProjectKey(), success, p.getIssues().size() - success);
                     return p;
                 })
                 .toList();
@@ -38,20 +37,9 @@ public class EnricherOrchestrator {
 
         return projects.stream()
                 .map(p -> {
-                    long alreadySingle = p.getIssues().stream()
-                            .filter(issue -> issue.getFields().getFixVersions() != null
-                                    && issue.getFields().getFixVersions().size() == 1)
-                            .count();
-
+                    long before = p.getIssues().stream().filter(versionService::hasSingleFvWithDate).count();
                     p.getIssues().forEach(versionService::assignMostRecentFixVersion);
-
-                    long afterSingle = p.getIssues().stream()
-                            .filter(issue -> issue.getFields().getFixVersions() != null
-                                    && issue.getFields().getFixVersions().size() == 1
-                                    && issue.getFields().getFixVersions().getFirst().getReleaseDate() != null)
-                            .count();
-
-                    long enriched = afterSingle - alreadySingle;
+                    long enriched = p.getIssues().stream().filter(versionService::hasSingleFvWithDate).count() - before;
                     log.info("Project [{}] multiple FV to single one enrichment: {} enriched, {} not enriched.\n",
                             p.getProjectKey(), enriched, p.getIssues().size() - enriched);
                     return p;
@@ -65,23 +53,9 @@ public class EnricherOrchestrator {
         return projects.stream()
                 .map(p -> {
                     long affected = p.getIssues().stream()
-                            .filter(issue -> {
-                                int fvBefore = issue.getFields().getFixVersions() != null
-                                        ? issue.getFields().getFixVersions().size() : 0;
-                                int avBefore = issue.getFields().getAffectedVersions() != null
-                                        ? issue.getFields().getAffectedVersions().size() : 0;
-
-                                versionService.removeVersionsWithoutReleaseDate(issue);
-
-                                int fvAfter = issue.getFields().getFixVersions() != null
-                                        ? issue.getFields().getFixVersions().size() : 0;
-                                int avAfter = issue.getFields().getAffectedVersions() != null
-                                        ? issue.getFields().getAffectedVersions().size() : 0;
-
-                                return fvAfter < fvBefore || avAfter < avBefore;
-                            })
+                            .filter(versionService::hasVersionsWithoutReleaseDate)
                             .count();
-
+                    p.getIssues().forEach(versionService::removeVersionsWithoutReleaseDate);
                     log.info("Project [{}] version date cleaning: {} issues had at least one version removed.\n",
                             p.getProjectKey(), affected);
                     return p;
@@ -94,24 +68,11 @@ public class EnricherOrchestrator {
 
         return projects.stream()
                 .map(p -> {
-                    long before = p.getIssues().stream()
-                            .filter(issue -> issue.getFields().getAffectedVersions() != null
-                                    && !issue.getFields().getAffectedVersions().isEmpty()
-                                    && issue.getFields().getAffectedVersions().stream()
-                                    .anyMatch(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank()))
-                            .count();
-
+                    long before = p.getIssues().stream().filter(versionService::hasValidAv).count();
                     p.getIssues().forEach(versionService::inferAffectedVersionsFromFixVersions);
-
-                    long after = p.getIssues().stream()
-                            .filter(issue -> issue.getFields().getAffectedVersions() != null
-                                    && !issue.getFields().getAffectedVersions().isEmpty()
-                                    && issue.getFields().getAffectedVersions().stream()
-                                    .anyMatch(v -> v.getReleaseDate() != null && !v.getReleaseDate().isBlank()))
-                            .count();
-
+                    long enriched = p.getIssues().stream().filter(versionService::hasValidAv).count() - before;
                     log.info("Project [{}] AV inference from FV: {} issues enriched, {} issues not enriched by this method.\n",
-                            p.getProjectKey(), after - before, p.getIssues().size() - (after - before));
+                            p.getProjectKey(), enriched, p.getIssues().size() - enriched);
                     return p;
                 })
                 .toList();

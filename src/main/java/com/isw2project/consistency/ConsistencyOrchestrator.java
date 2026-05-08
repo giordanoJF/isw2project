@@ -64,6 +64,22 @@ public class ConsistencyOrchestrator {
         return applyIssueCheck(projects, new IssueHasAffectedVersionCheck());
     }
 
+    public List<ProjectData> checkAll(List<ProjectData> projects) {
+        List<ProjectData> result = projects;
+        result = checkVersionIsReleased(result);
+        result = checkVersionHasName(result);
+        result = checkVersionHasReleaseDate(result);
+        result = checkIssueHasKey(result);
+        result = checkIssueHasCreatedDate(result);
+        result = checkIssueHasFixVersion(result);
+        result = checkIssueFixVersionHasReleaseDate(result);
+        result = checkIssueCreatedAfterOldestVersion(result);
+        result = checkIssueFixVersionAfterOpeningVersion(result);
+        result = checkIssueFixVersionAfterAffectedVersion(result);
+        result = checkIssueAllVersionsHaveReleaseDate(result);
+        return result;
+    }
+
 
     // -------------------------------------------------------------------------
 

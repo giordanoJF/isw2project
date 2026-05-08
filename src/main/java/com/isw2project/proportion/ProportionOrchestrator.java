@@ -21,51 +21,29 @@ public class ProportionOrchestrator {
         this.injectedVersionService = injectedVersionService;
     }
 
-    /**
-     * Computes P from the given input (can be cleaned or original dataset)
-     * then applies proportion to predict AV for issues without valid AV
-     * in the target dataset.
-     */
-    public void applyProportion(List<ProjectData> pComputationInput, List<ProjectData> target) {
-        // some will be skipped because their predicted IV land on the same index as FV,
-        // and others will have 0 at denominator
-        pComputationInput.forEach(inputProject -> {
-            Optional<Double> p = proportionService.computeP(inputProject);
+    public void applyProportion(List<ProjectData> projects) {
+        projects.forEach(project -> {
+            Optional<Double> p = proportionService.computeP(project);
 
             if (p.isEmpty()) {
-                log.warn("Project [{}] could not compute P — no valid issues found.", inputProject.getProjectKey());
+                log.warn("Project [{}] could not compute P — no valid issues found.", project.getProjectKey());
                 return;
             }
 
-            log.info("Project [{}] computed P = {}.", inputProject.getProjectKey(), p.get());
-
-            target.stream()
-                    .filter(targetProject -> targetProject.getProjectKey().equals(inputProject.getProjectKey()))
-                    .findFirst()
-                    .ifPresent(targetProject -> applyToProject(targetProject, p.get()));
+            log.info("Project [{}] computed P = {}.", project.getProjectKey(), p.get());
+            applyToProject(project, p.get());
         });
     }
 
     private void applyToProject(ProjectData projectData, double p) {
         List<Version> orderedVersions = proportionService.getOrderedVersions(projectData.getVersions());
 
-        long before = countIssuesWithoutValidAV(projectData);
-
+        long before = proportionService.countIssuesWithoutValidAV(projectData);
         projectData.getIssues().forEach(issue ->
                 injectedVersionService.predictAndAssignAV(issue, orderedVersions, p, projectData.getProjectKey()));
-
-        long after = countIssuesWithoutValidAV(projectData);
+        long after = proportionService.countIssuesWithoutValidAV(projectData);
 
         log.info("Project [{}] proportion applied: {} issues received predicted AV, {} could not be predicted.",
                 projectData.getProjectKey(), before - after, after);
-    }
-
-    private long countIssuesWithoutValidAV(ProjectData projectData) {
-        return projectData.getIssues().stream()
-                .filter(issue -> issue.getFields().getAffectedVersions() == null
-                        || issue.getFields().getAffectedVersions().isEmpty()
-                        || issue.getFields().getAffectedVersions().stream()
-                        .allMatch(v -> v.getReleaseDate() == null || v.getReleaseDate().isBlank()))
-                .count();
     }
 }
