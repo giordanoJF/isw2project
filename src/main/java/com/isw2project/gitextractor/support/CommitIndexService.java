@@ -1,4 +1,4 @@
-package com.isw2project.buggyness;
+package com.isw2project.gitextractor.support;
 
 import com.isw2project.gitextractor.GitCommandException;
 import org.slf4j.Logger;
@@ -26,6 +26,7 @@ public class CommitIndexService {
     private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z]+-\\d+");
 
     private final File repoDir;
+    private Map<String, Set<String>> cachedIndex = null;
 
     public CommitIndexService(File repoDir) {
         this.repoDir = repoDir;
@@ -34,8 +35,21 @@ public class CommitIndexService {
     /**
      * Returns a map of issueKey -> set of repository-relative file paths touched
      * by commits whose message contains that issue key.
+     * The index is built once and cached — subsequent calls return the same instance.
+     * Returns an empty map and logs the error if the git command fails.
      */
-    public Map<String, Set<String>> buildIssueToFilesIndex() throws GitCommandException {
+    public Map<String, Set<String>> buildIssueToFilesIndex() {
+        if (cachedIndex != null) return cachedIndex;
+        try {
+            cachedIndex = runGitLog();
+        } catch (GitCommandException e) {
+            log.error("Failed to build commit index: {}", e.getMessage(), e);
+            cachedIndex = Map.of();
+        }
+        return cachedIndex;
+    }
+
+    private Map<String, Set<String>> runGitLog() throws GitCommandException {
         try {
             ProcessBuilder pb = new ProcessBuilder(
                     "git", "log", "--all", "--name-only", "--format=COMMIT:%s"
@@ -45,7 +59,6 @@ public class CommitIndexService {
 
             Process process = pb.start();
             Map<String, Set<String>> index = new HashMap<>();
-
             Set<String> currentIssueKeys = new HashSet<>();
             int totalCommits = 0;
             int matchedCommits = 0;
@@ -56,9 +69,7 @@ public class CommitIndexService {
                     if (line.startsWith("COMMIT:")) {
                         totalCommits++;
                         currentIssueKeys = extractIssueKeys(line.substring(7));
-                        if (!currentIssueKeys.isEmpty()) {
-                            matchedCommits++;
-                        }
+                        if (!currentIssueKeys.isEmpty()) matchedCommits++;
                     } else if (!line.isBlank() && !currentIssueKeys.isEmpty()) {
                         for (String key : currentIssueKeys) {
                             index.computeIfAbsent(key, k -> new HashSet<>()).add(line.trim());
@@ -72,7 +83,7 @@ public class CommitIndexService {
                 throw new GitCommandException("git log failed with exit code: " + exitCode);
             }
 
-            log.info("Commit index: {} total commits, {} with issue key, {} unique issues indexed, {} with no key.",
+            log.info("Commit index: {} total commits, {} with issue key, {} unique issues, {} with no key.",
                     totalCommits, matchedCommits, index.size(), totalCommits - matchedCommits);
 
             return index;

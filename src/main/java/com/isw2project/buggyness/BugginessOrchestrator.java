@@ -1,6 +1,7 @@
 package com.isw2project.buggyness;
 
 import com.isw2project.gitextractor.GitCommandException;
+import com.isw2project.gitextractor.support.CommitIndexService;
 import com.isw2project.model.Issue;
 import com.isw2project.model.ReleaseSnapshot;
 
@@ -25,14 +26,18 @@ public class BugginessOrchestrator {
 
     /**
      * Builds the commit index and labels each snapshot as buggy or not.
-     * Snapshots are mutated in place — isBuggy is set directly on each JavaClassSnapshot.
-     *
-     * @param snapshots release snapshots produced by the Git extraction phase
-     * @param issues    all Jira issues from the cleaned project data
+     * Snapshots are mutated in place.
      */
     public void labelSnapshots(List<ReleaseSnapshot> snapshots, List<Issue> issues)
             throws GitCommandException {
         Map<String, Set<String>> issueToFilesIndex = commitIndexService.buildIssueToFilesIndex();
         labelerService.label(snapshots, issues, issueToFilesIndex);
+    }
+
+    /**
+     * Returns the commit index so it can be reused by other components (e.g. NfixMetric).
+     */
+    public Map<String, Set<String>> buildIssueToFilesIndex() throws GitCommandException {
+        return commitIndexService.buildIssueToFilesIndex();
     }
 }

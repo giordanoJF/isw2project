@@ -2,7 +2,7 @@ package com.isw2project;
 
 import com.isw2project.buggyness.BugginessLabelerService;
 import com.isw2project.buggyness.BugginessOrchestrator;
-import com.isw2project.buggyness.CommitIndexService;
+import com.isw2project.gitextractor.support.CommitIndexService;
 import com.isw2project.config.AppConfig;
 import com.isw2project.config.ConfigLoader;
 import com.isw2project.consistency.ConsistencyOrchestrator;
@@ -11,6 +11,7 @@ import com.isw2project.downloader.DownloaderOrchestrator;
 import com.isw2project.enricher.EnricherOrchestrator;
 import com.isw2project.enricher.VersionService;
 import com.isw2project.gitextractor.GitExtractorOrchestrator;
+import com.isw2project.metrics.*;
 import com.isw2project.model.ProjectData;
 import com.isw2project.model.ReleaseSnapshot;
 import com.isw2project.proportion.InjectedVersionService;
@@ -21,6 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Entry point for the Jira Downloader application.
@@ -112,20 +115,25 @@ public class Main {
         File repoDir = new File("gitclones/openjpa");
         File codeOutputDir = new File("output/code");
 
-            GitExtractorOrchestrator gitOrchestrator = new GitExtractorOrchestrator(repoDir, codeOutputDir, false);
-            List<ReleaseSnapshot> snapshots = gitOrchestrator.extractSnapshots(cleaned.getFirst().getVersions());
+        CommitIndexService commitIndexService = new CommitIndexService(repoDir);
+        Map<String, Set<String>> issueToFilesIndex = commitIndexService.buildIssueToFilesIndex();
 
-            BugginessOrchestrator bugginessOrchestrator = new BugginessOrchestrator(
-                    new CommitIndexService(repoDir),
-                    new BugginessLabelerService()
-            );
+        GitExtractorOrchestrator gitOrchestrator = new GitExtractorOrchestrator(repoDir, codeOutputDir, false);
+        List<ReleaseSnapshot> snapshots = gitOrchestrator.extractSnapshots(cleaned.getFirst().getVersions());
 
-            bugginessOrchestrator.labelSnapshots(snapshots, cleaned.getFirst().getIssues());
-            csvExporter.exportSnapshots(snapshots, "OPENJPA", "snapshotResult");
+        BugginessOrchestrator bugginessOrchestrator = new BugginessOrchestrator(commitIndexService, new BugginessLabelerService());
+        bugginessOrchestrator.labelSnapshots(snapshots, cleaned.getFirst().getIssues());
 
+        MetricsOrchestrator metricsOrchestrator = new MetricsOrchestrator(
+                repoDir,
+                cleaned.getFirst().getVersions(),
+                gitOrchestrator.getLastResolvedRefs(),
+                cleaned.getFirst().getIssues(),
+                issueToFilesIndex
+        );
+        metricsOrchestrator.computeAll(snapshots,1);
 
-
-
+        csvExporter.exportSnapshots(snapshots, "OPENJPA", "snapshotResult");
 
     }
 }
