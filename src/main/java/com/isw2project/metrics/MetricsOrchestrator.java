@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +87,17 @@ public class MetricsOrchestrator {
         // Used to assign the shifted value to the current release.
         Map<String, String> previousReleaseSmells = new LinkedHashMap<>();
 
-        for (ReleaseSnapshot release : snapshots) {
+        // Sort snapshots chronologically by release date before applying the shift.
+        // The snapshot list may not be in strict date order (e.g. Jira version 1.2.2
+        // can appear after 2.0.0-M3 in the list but have an earlier release date).
+        // The shift logic requires strict chronological order to propagate smells correctly.
+        List<ReleaseSnapshot> sortedSnapshots = snapshots.stream()
+                .sorted(Comparator.comparing(r -> jiraNameToReleaseDate.getOrDefault(r.getRelease(), LocalDate.MAX)))
+                .toList();
+
+        for (ReleaseSnapshot release : sortedSnapshots) {
+//            System.out.println("Processing release: " + release.getRelease()
+//                    + " date: " + jiraNameToReleaseDate.get(release.getRelease()));
             if (processed >= limit) break;
 
             // Run PMD on the current release files to get their actual smells.
@@ -106,8 +117,14 @@ public class MetricsOrchestrator {
             // is always complete for the next release even when limit cuts mid-release.
             Map<String, String> currentReleaseSmells = new LinkedHashMap<>();
             for (JavaClassSnapshot snapshot : release.getClasses()) {
-                currentReleaseSmells.put(snapshot.getClassPath(),
-                        codeSmellsMetric.getCachedSmells(snapshot.getCode()));
+                String smells = codeSmellsMetric.getCachedSmells(snapshot.getCode());
+                currentReleaseSmells.put(snapshot.getClassPath(), smells);
+
+                // Debug: verify cache is populated correctly after analyzeBatch
+//                if (snapshot.getClassPath().contains("ContactInfo") && release.getRelease().equals("2.0.0-M3")) {
+//                    System.out.println("After analyzeBatch " + release.getRelease()
+//                            + " ContactInfo smells from cache: " + smells);
+//                }
             }
 
             for (JavaClassSnapshot snapshot : release.getClasses()) {
@@ -118,9 +135,8 @@ public class MetricsOrchestrator {
 
                 // Override Code_Smells with the value from the previous release (shift by one).
                 // If the class did not exist in the previous release, default to "0".
-                metrics.put(codeSmellsMetric.columnName(),
-                        previousReleaseSmells.getOrDefault(snapshot.getClassPath(), "0"));
-
+                String shiftedValue = previousReleaseSmells.getOrDefault(snapshot.getClassPath(), "0");
+                metrics.put(codeSmellsMetric.columnName(), shiftedValue);
 
                 snapshot.setMetrics(metrics);
                 processed++;
@@ -132,7 +148,7 @@ public class MetricsOrchestrator {
         log.info("Metrics computed for {}/{} snapshots ({}%).", processed, total,
                 Math.round(percentage * 100));
         log.info("PMD batch analysis total time: {}ms ({} releases analyzed).",
-                batchPmdMs, snapshots.size());
+                batchPmdMs, sortedSnapshots.size());
         computerService.logTimingSummary();
     }
 
