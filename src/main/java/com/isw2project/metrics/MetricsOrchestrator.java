@@ -63,6 +63,8 @@ public class MetricsOrchestrator {
                 new AvgChangeSetMetric(gitLogStats),
                 new AgeMetric(gitLogStats),
                 new WeightedAgeMetric(gitLogStats),
+                new ExpMetric(gitLogStats),
+                new SexpMetric(gitLogStats),
                 codeSmellsMetric
         );
 

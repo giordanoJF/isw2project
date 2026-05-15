@@ -64,6 +64,12 @@ public class GitLogStatsService {
         return filtered;
     }
 
+    /** Returns the full file→commits index. Used by metrics that need to query global author history. */
+    public Map<String, List<CommitStat>> getFullIndex() {
+        ensureIndexBuilt();
+        return Collections.unmodifiableMap(index);
+    }
+
     /**
      * Returns the date of the first commit that added the given file, or null if not found.
      */
