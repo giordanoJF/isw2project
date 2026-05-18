@@ -80,35 +80,34 @@ public class BalancingBuilderService {
     }
 
     /**
-     * SmoteFilter generates synthetic minority-class instances by interpolating between
-     * real minority instances in feature space. The percentage is set so that the
-     * number of synthetic instances approximately closes the gap between majority
-     * and minority class counts.
+     * SmoteFilter is the official Weka SMOTE source (Lichtenwalter 2008) re-packaged
+     * in this project because the Weka SMOTE package is not on Maven Central.
      *
-     * Uses the custom SmoteFilter (weka-stable does not ship SMOTE in its core jar).
+     * For each minority-class instance it finds the k nearest neighbors using Euclidean
+     * distance for numeric attributes and VDM (Value Distance Metric) for nominal ones,
+     * then generates floor(percentage/100) synthetic instances per base instance by
+     * interpolating toward a randomly chosen neighbor. Nominal attributes are resolved
+     * by majority vote among the k neighbors. The minority class is auto-detected.
+     *
+     * The percentage is computed from the full dataset so that synthetic instances
+     * approximately close the gap between majority and minority class counts.
      */
     private SmoteFilter buildSmote(Instances data) {
         int[] counts = data.attributeStats(data.classIndex()).nominalCounts;
         int majority = 0;
         int minority = Integer.MAX_VALUE;
-        int minorityIndex = 0;
-        for (int i = 0; i < counts.length; i++) {
-            if (counts[i] > majority) majority = counts[i];
-            if (counts[i] < minority) {
-                minority = counts[i];
-                minorityIndex = i;
-            }
+        for (int count : counts) {
+            if (count > majority) majority = count;
+            if (count < minority) minority = count;
         }
 
         double smotePercentage = (double) (majority - minority) / minority * 100.0;
         smotePercentage = Math.max(100.0, smotePercentage);
 
         SmoteFilter filter = new SmoteFilter();
-        filter.setMinorityClassIndex(minorityIndex);
         filter.setPercentage(smotePercentage);
         if (log.isDebugEnabled()) {
-            log.debug("SMOTE percentage = {} (minority class index = {})",
-                    String.format("%.1f", smotePercentage), minorityIndex);
+            log.debug("SMOTE percentage = {}", String.format("%.1f", smotePercentage));
         }
         return filter;
     }

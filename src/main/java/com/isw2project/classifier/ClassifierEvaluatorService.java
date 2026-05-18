@@ -11,6 +11,42 @@ import java.util.Random;
 /**
  * Runs 10-times 10-fold cross-validation and returns averaged performance metrics.
  *
+ * WHAT THIS CV IS FOR — ESTIMATION, NOT HYPERPARAMETER SELECTION:
+ * CV has two distinct uses. The first is selecting the best hyperparameter
+ * configuration (try A, B, C with CV, pick the winner). The second — what
+ * this class does — is estimating how well a fixed configuration generalizes
+ * to unseen data. No choice is made inside the CV loop: each combination
+ * defined in config.yaml gets its own independent estimate, and comparison
+ * across combinations happens afterward by reading the output CSV.
+ *
+ * WHY ACCUMULATING PREDICTIONS ACROSS FOLDS IS NOT CHEATING:
+ * In 10-fold CV, Weka accumulates predictions from all folds into one
+ * Evaluation object. Each prediction is produced by a model that had NOT
+ * seen that instance during training (it was in the test fold at that
+ * point). Accumulating N honest predictions is not the same as training
+ * on all data and predicting on all data — there, the model already knows
+ * the answers. Here every instance is predicted exactly once by a model
+ * that never trained on it.
+ *
+ * This class knows nothing about balancing or feature selection. Those concerns
+ * are encapsulated inside the Classifier object passed as argument: when filters
+ * are active, ClassifierBuilderService wraps the base classifier in a
+ * FilteredClassifier. Weka then applies the filters automatically inside each
+ * fold during crossValidateModel:
+ *
+ *   training fold -> FilteredClassifier.buildClassifier(training_fold)
+ *                      -> balancingFilter.fit_and_transform(training_fold)
+ *                      -> fsFilter.fit_and_transform(training_fold_balanced)
+ *                      -> baseClassifier.fit(training_fold_balanced_fs)
+ *
+ *   test instance -> FilteredClassifier.classifyInstance(test_instance)
+ *                      -> fsFilter.transform(test_instance)   // already fitted, no re-fit
+ *                      -> baseClassifier.predict(test_instance_fs)
+ *
+ * Balancing is never applied to the test fold: FilteredClassifier applies
+ * supervised instance filters (SMOTE, Resample, SpreadSubsample) only during
+ * buildClassifier, not during classifyInstance.
+ *
  * Each of the 10 runs uses a different random seed passed to crossValidateModel,
  * which handles shuffling and stratification internally. The data object is never
  * modified: crossValidateModel creates its own copy, making this method safe to
