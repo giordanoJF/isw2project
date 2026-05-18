@@ -64,7 +64,7 @@ public class GitLogStatsService {
         return filtered;
     }
 
-    /** Returns the full file→commits index. Used by metrics that need to query global author history. */
+    /** Returns the full file->commits index. Used by metrics that need to query global author history. */
     public Map<String, List<CommitStat>> getFullIndex() {
         ensureIndexBuilt();
         return Collections.unmodifiableMap(index);

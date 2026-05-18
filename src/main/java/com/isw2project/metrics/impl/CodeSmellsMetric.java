@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * Counts PMD rule violations (code smells) for a batch of source files in a single PMD invocation.
- * This avoids paying the PMD initialization cost once per snapshot (which would be ~15000 times).
+ * This avoids paying the PMD initialization cost once per snapshot (which would be approximately 15000 times).
  * Instead, all files in a release are analyzed together, paying the init cost once per release.
  *
  * Usage: call analyzeBatch() once per release with all file paths, then compute() reads from cache.
