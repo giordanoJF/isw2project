@@ -11,6 +11,7 @@ public class AppConfig {
     private List<ProjectConfig> projects;
     private CsvConfig csv;
     private GitConfig git;
+    private ClassifierConfig classifier;
 
     public CsvConfig getCsv()           { return csv; }
     public void setCsv(CsvConfig csv)   { this.csv = csv; }
@@ -23,4 +24,7 @@ public class AppConfig {
 
     public GitConfig getGit() { return git; }
     public void setGit(GitConfig git) { this.git = git; }
+
+    public ClassifierConfig getClassifier()                { return classifier; }
+    public void setClassifier(ClassifierConfig classifier) { this.classifier = classifier; }
 }

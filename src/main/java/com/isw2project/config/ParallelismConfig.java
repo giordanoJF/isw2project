@@ -4,7 +4,7 @@ package com.isw2project.config;
  * CPU parallelism settings for the Milestone 2 classifier evaluation.
  *
  * Two independent levels of parallelism are available:
- *   1. combination-level: each (classifier × FS × balancing) combination runs on a
+ *   1. combination-level: each (classifier x FS x balancing) combination runs on a
  *      separate thread. Fully independent, scales linearly up to the combination count.
  *   2. RandomForest-internal: trees are built in parallel via setNumExecutionSlots().
  *      Only affects RandomForest; NaiveBayes and IBk are always single-threaded.

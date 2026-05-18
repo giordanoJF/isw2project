@@ -65,7 +65,7 @@ public class InteractiveParallelismConfigurator {
     private static void printSummary(int combinationThreads, int rfSlots, int cores) {
         int used = combinationThreads * rfSlots;
         System.out.println();
-        System.out.printf("Riepilogo: %d thread combinazioni × %d slot RF = %d core usati su %d disponibili",
+        System.out.printf("Riepilogo: %d thread combinazioni x %d slot RF = %d core usati su %d disponibili",
                 combinationThreads, rfSlots, used, cores);
         if (used > cores) {
             System.out.print("  [ATTENZIONE: supera i core disponibili, possibile oversubscription]");
