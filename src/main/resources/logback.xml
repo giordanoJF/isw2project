@@ -9,6 +9,9 @@
     <!-- Suppress all PMD internal logging -->
     <logger name="net.sourceforge.pmd" level="OFF"/>
 
+    <!-- Suppress Weka/netlib JUL warnings (ARPACK native library fallback) routed via jul-to-slf4j -->
+    <logger name="com.github.fommil" level="OFF"/>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>

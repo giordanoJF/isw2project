@@ -5,14 +5,6 @@ projects:
   - key: OPENJPA
     jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
 
-#  - key: BOOKKEEPER
-#    jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
-
-#  - key: KAFKA
-#    jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
-
-
-
 git:
   repoDir: gitclones/openjpa
   codeOutputDir: output/code
@@ -30,3 +22,86 @@ csv:
     name: true
     releaseDate: true
     released: true
+
+classifier:
+  inputCsv: "output/snapshotResult/OPENJPA_snapshots.csv"
+  outputDir: "output/classifierResult"
+  datasetName: "OPENJPA"
+
+  # Runtime estimate (OpenJPA, 15k instances, 19 features, rfSlots=1):
+  # Default config (3 clf x 3 FS x 3 bal = 27 combinations, SMOTE off):
+  #   2h 22m single-thread -> 35m with 4 threads (misurato)
+  # With SMOTE enabled (36 combinations): 4h single-thread -> 1h with 4 threads
+  # With FORWARD_SEARCH or BACKWARD_SEARCH: each adds 9 combinations,
+  #   each wrapper combination estimated 1-3 hours, potentially 1-3 days total
+
+  classifiers:
+    - RANDOM_FOREST   # measured: 757s (None), 151s (Undersampling), 1254s (Oversampling)
+    - NAIVE_BAYES     # measured: 6s (None), 1s (Undersampling), 10s (Oversampling)
+    - IBK             # measured: 227s (None), 37s (Undersampling), 331s (Oversampling)
+
+  featureSelection:
+    - NONE            # no overhead
+    - INFO_GAIN       # fast filter method, negligible overhead
+    - SPEARMAN        # fast filter method, negligible overhead
+    # WARNING — WRAPPER METHODS (very slow, disabled by default)
+    # Each wrapper combination runs a full GreedyStepwise search on every training fold
+    # of the outer 10x10 CV (100 folds x 190 subset evaluations x 5 inner CV folds
+    # = 95,000 NaiveBayes fits per combination). Estimated 1-3 hours per combination.
+    # With 3 classifiers x 4 balancing options = 12 combinations per search direction.
+    # Total additional runtime if both enabled: potentially 1-3 days.
+    # - FORWARD_SEARCH   # SLOW — starts from 0 features, adds one at a time
+    # - BACKWARD_SEARCH  # SLOW — starts from all features, removes one at a time
+
+  balancing:
+    - NONE            # no overhead
+    - UNDERSAMPLING   # fast, reduces training set (approximately 2.7k instances after balancing)
+    - OVERSAMPLING    # moderate, grows training set (approximately 27k instances after balancing)
+    #- SMOTE           # SLOWER than oversampling — generates approximately 12.5k synthetic instances,
+                      #   growing the training set to approximately 27k; k-NN computation adds overhead
+
+  crossValidation:
+    runs: 10
+    folds: 10
+
+  # Base classifier used inside wrapper FS methods (ForwardSearch / BackwardSearch).
+  # NaiveBayes is recommended: fast enough to make the wrapper search tractable.
+  # Changing this to RANDOM_FOREST would multiply the already high wrapper cost by 10x.
+  wrapperBaseClassifier: NAIVE_BAYES
+
+  # Parallelismo CPU:
+  # Ci sono due livelli indipendenti di parallelismo. Il loro prodotto non dovrebbe
+  # superare il numero di core fisici della macchina per evitare oversubscription.
+  #
+  # interactive:
+  #   true  -> all'avvio viene mostrato il numero di core disponibili e il numero
+  #            totale di combinazioni; l'utente inserisce i valori da tastiera.
+  #            Utile su macchine diverse senza dover modificare questo file.
+  #   false -> i valori vengono letti direttamente da combinations e randomForestSlots.
+  #
+  # combinations:
+  #   Quante combinazioni (clf x FS x balancing) eseguire contemporaneamente.
+  #   Ogni combinazione è indipendente: crea il proprio Classifier e Evaluation.
+  #   Il dataset (Instances) è condiviso in sola lettura tra i thread; le copie
+  #   per fold sono create internamente da Weka (crossValidateModel).
+  #   Formati accettati:
+  #     "auto"  -> usa tutti i core disponibili (scelta ottimale su PC dedicato)
+  #     "4"     -> numero esplicito di thread
+  #     "50%"   -> percentuale dei core disponibili (es. 50% di 16 core = 8 thread)
+  #
+  # randomForestSlots:
+  #   Quanti thread usa internamente RandomForest per costruire gli alberi in parallelo
+  #   (Weka setNumExecutionSlots). Non ha effetto su NaiveBayes e IBk che sono
+  #   sempre single-thread indipendentemente da questo valore.
+  #   Formati accettati: stessi di combinations ("auto", "2", "25%").
+  #   "auto" -> max(1, core_disponibili / combinations), così i due livelli si
+  #            dividono i core senza sovrapporsi.
+  #   Esempio con 16 core: combinations="8", randomForestSlots="2" -> 8x2=16 core.
+  #
+  # GPU: non supportata. RandomForest, NaiveBayes e IBk sono algoritmi CPU-only
+  #   in Weka. La GPU accelera operazioni su matrici dense (deep learning); questi
+  #   algoritmi non ne traggono beneficio. Richiederebbe un cambio di libreria ML.
+  parallelism:
+    interactive: false     # true = chiede i valori a runtime; false = usa quelli sotto
+    combinations: "50%"    # "auto", numero intero (es. "4") o percentuale (es. "50%")
+    randomForestSlots: "1" # "auto", numero intero (es. "2") o percentuale (es. "25%")
