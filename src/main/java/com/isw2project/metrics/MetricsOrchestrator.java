@@ -1,5 +1,6 @@
 package com.isw2project.metrics;
 
+import com.isw2project.config.MetricsConfig;
 import com.isw2project.metrics.impl.CodeSmellsMetric;
 import com.isw2project.model.JavaClassSnapshot;
 import com.isw2project.model.ReleaseSnapshot;
@@ -34,17 +35,23 @@ public class MetricsOrchestrator {
     private final CodeSmellsMetric codeSmellsMetric;
     private final Map<String, String> jiraNameToGitRef;
     private final Map<String, LocalDate> jiraNameToReleaseDate;
+    private final double snapshotPercentage;
 
     public MetricsOrchestrator(File repoDir,
                                List<Version> versions,
                                Map<String, String> jiraNameToGitRef,
                                List<Issue> issues,
-                               Map<String, Set<String>> issueToFilesIndex) {
+                               Map<String, Set<String>> issueToFilesIndex,
+                               MetricsConfig metricsConfig) {
         this.jiraNameToGitRef = jiraNameToGitRef;
         this.jiraNameToReleaseDate = buildReleaseDateMap(versions);
+        this.snapshotPercentage = metricsConfig.getSnapshotPercentage();
 
         GitLogStatsService gitLogStats = new GitLogStatsService(repoDir);
-        this.codeSmellsMetric = new CodeSmellsMetric();
+        this.codeSmellsMetric = new CodeSmellsMetric(
+                metricsConfig.getPmd().getBatchSize(),
+                metricsConfig.getPmd().getCpuFraction()
+        );
 
         List<Metric> metrics = List.of(
                 new SizeMetric(),
@@ -72,16 +79,16 @@ public class MetricsOrchestrator {
     }
 
     /**
-     * Computes metrics for the given percentage of snapshots (0.0 to 1.0).
+     * Computes metrics for the percentage of snapshots defined in config.yaml (metrics.snapshotPercentage).
      * For each release, PMD analysis is run once in batch before iterating individual snapshots.
      *
      * Code_Smells are shifted by one release: the value assigned to (class, release_N) is the
      * count computed for (class, release_N-1). Snapshots in the first release get 0 code smells.
      * This reflects the fact that smells introduced in release N only affect release N+1 onwards.
      */
-    public void computeAll(List<ReleaseSnapshot> snapshots, double percentage) {
+    public void computeAll(List<ReleaseSnapshot> snapshots) {
         int total = snapshots.stream().mapToInt(r -> r.getClasses().size()).sum();
-        int limit = (int) Math.ceil(total * Math.clamp(percentage, 0.0, 1.0));
+        int limit = (int) Math.ceil(total * Math.clamp(snapshotPercentage, 0.0, 1.0));
         int processed = 0;
         long batchPmdMs = 0;
 
@@ -114,7 +121,7 @@ public class MetricsOrchestrator {
             previousReleaseSmells = currentReleaseSmells;
         }
 
-        log.info("Metrics computed for {}/{} snapshots ({}%).", processed, total, Math.round(percentage * 100));
+        log.info("Metrics computed for {}/{} snapshots ({}%).", processed, total, Math.round(snapshotPercentage * 100));
         log.info("PMD batch analysis total time: {}ms.", batchPmdMs);
         computerService.logTimingSummary();
     }

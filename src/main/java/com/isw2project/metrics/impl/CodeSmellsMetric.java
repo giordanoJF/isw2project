@@ -21,44 +21,39 @@ import java.util.Map;
  * Instead, all files in a release are analyzed together, paying the init cost once per release.
  *
  * Usage: call analyzeBatch() once per release with all file paths, then compute() reads from cache.
- * The number of threads is auto-detected from available processors.
+ * Tuning parameters (batchSize, cpuFraction) are injected via constructor from config.yaml.
  */
 public class CodeSmellsMetric implements Metric {
 
     private static final Logger log = LoggerFactory.getLogger(CodeSmellsMetric.class);
 
-    // --- Tuning parameters ---
-    // Number of files analyzed per PMD invocation.
-    // Lower values reduce peak RAM usage; higher values reduce PMD init overhead.
-    // Recommended range: 50-200.
-    private static final int BATCH_SIZE = 100;
-
-    // Fraction of available CPU cores assigned to PMD threads (e.g. 0.5 = half the cores).
-    // Lower values leave more resources to the OS; higher values speed up analysis.
-    // Recommended range: 0.25 - 0.75.
-    private static final double CPU_FRACTION = 0.5;
-
-    // PMD rulesets to apply. Remove or comment out categories to reduce analysis scope.
     private static final String[] RULESETS = {
             "category/java/bestpractices.xml",
             "category/java/design.xml",
             "category/java/errorprone.xml",
             "category/java/codestyle.xml"
     };
-    // -------------------------
+
+    private final int batchSize;
+    private final double cpuFraction;
 
     // Cache of absolute file path -> violation count, populated by analyzeBatch().
     private final Map<String, Integer> violationCache = new HashMap<>();
 
+    public CodeSmellsMetric(int batchSize, double cpuFraction) {
+        this.batchSize = batchSize;
+        this.cpuFraction = cpuFraction;
+    }
+
     /**
-     * Analyzes all given source files in sub-batches of BATCH_SIZE to limit peak memory usage.
+     * Analyzes all given source files in sub-batches of batchSize to limit peak memory usage.
      * Each sub-batch runs a separate PMD invocation, keeping memory pressure bounded.
      * Must be called before compute() for the files in this batch.
      */
     public void analyzeBatch(List<Path> sourceFiles) {
         if (sourceFiles.isEmpty()) return;
-        for (int i = 0; i < sourceFiles.size(); i += BATCH_SIZE) {
-            List<Path> subBatch = sourceFiles.subList(i, Math.min(i + BATCH_SIZE, sourceFiles.size()));
+        for (int i = 0; i < sourceFiles.size(); i += batchSize) {
+            List<Path> subBatch = sourceFiles.subList(i, Math.min(i + batchSize, sourceFiles.size()));
             analyzeSubBatch(subBatch);
         }
     }
@@ -77,7 +72,7 @@ public class CodeSmellsMetric implements Metric {
         sourceFiles.forEach(config::addInputPath);
         config.setReportFormat("empty");
         config.setAnalysisCacheLocation(null);
-        int threads = Math.max(1, (int) (Runtime.getRuntime().availableProcessors() * CPU_FRACTION));
+        int threads = Math.max(1, (int) (Runtime.getRuntime().availableProcessors() * cpuFraction));
         config.setThreads(threads);
 
         try (PmdAnalysis pmd = PmdAnalysis.create(config)) {

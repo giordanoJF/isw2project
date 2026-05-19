@@ -24,6 +24,17 @@ csv:
     releaseDate: true
     released: true
 
+metrics:
+  # Fraction of snapshots to process (1.0 = all, 0.1 = 10% for quick debug runs).
+  snapshotPercentage: 1.0
+  pmd:
+    # Files analyzed per PMD invocation. Lower -> less peak RAM; higher -> less init overhead.
+    # Recommended range: 50-200.
+    batchSize: 100
+    # Fraction of CPU cores used by PMD threads (e.g. 0.5 = half the cores).
+    # Recommended range: 0.25-0.75.
+    cpuFraction: 0.5
+
 classifier:
   inputCsv: "output/milestone1/5_snapshots/OPENJPA_snapshots.csv"
   outputDir: "output/milestone2"

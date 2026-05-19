@@ -120,9 +120,10 @@
                     cleaned.getFirst().getVersions(),
                     gitOrchestrator.getLastResolvedRefs(),
                     cleaned.getFirst().getIssues(),
-                    issueToFilesIndex
+                    issueToFilesIndex,
+                    config.getMetrics()
             );
-            metricsOrchestrator.computeAll(snapshots,1);
+            metricsOrchestrator.computeAll(snapshots);
 
             csvExporter.exportSnapshots(snapshots, "OPENJPA", "5_snapshots");
 
