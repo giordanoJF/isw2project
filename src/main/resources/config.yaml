@@ -8,10 +8,10 @@ projects:
 git:
   cloneUrl: https://github.com/apache/openjpa.git
   repoDir: gitclones/openjpa
-  codeOutputDir: output/code
+  codeOutputDir: output/milestone1/6_extracted_source
 
 csv:
-  outputDir: output
+  outputDir: output/milestone1
   issueColumns:
     key: true
     summary: false
@@ -25,8 +25,8 @@ csv:
     released: true
 
 classifier:
-  inputCsv: "output/snapshotResult/OPENJPA_snapshots.csv"
-  outputDir: "output/classifierResult"
+  inputCsv: "output/milestone1/5_snapshots/OPENJPA_snapshots.csv"
+  outputDir: "output/milestone2"
   datasetName: "OPENJPA"
 
   # Runtime estimate (OpenJPA, 15k instances, 19 features, rfSlots=1):

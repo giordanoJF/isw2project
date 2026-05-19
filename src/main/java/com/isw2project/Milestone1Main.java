@@ -63,7 +63,7 @@
 
             // Download versions and issues
             List<ProjectData> result = downloader.downloadAll();
-            csvExporter.export(result, "originalResult");
+            csvExporter.export(result, "1_raw_jira_data");
 
             // Instantiate the enricher orchestrator
             EnricherOrchestrator enricher = new EnricherOrchestrator(
@@ -75,7 +75,7 @@
             enriched = enricher.enrichAVFromFV(enriched);
             enriched = enricher.enrichWithOV(enriched);
             enriched = enricher.enrichMultiToSingleFV(enriched);
-            csvExporter.export(enriched, "enrichedResult");
+            csvExporter.export(enriched, "2_enriched_jira_data");
 
             // Instantiate the consistency orchestrator
             ConsistencyOrchestrator consistency = new ConsistencyOrchestrator();
@@ -85,7 +85,7 @@
 
             // Remove zombie versions
             cleaned = enricher.removeZombieVersionReferences(cleaned);
-            csvExporter.export(cleaned, "checkedResult");
+            csvExporter.export(cleaned, "3_consistency_checked");
 
             // Instantiate the proportion orchestrator
             ProportionOrchestrator proportionOrchestrator = new ProportionOrchestrator(
@@ -98,7 +98,7 @@
 
             // Remove last issues with no AV
             cleaned = consistency.checkIssueHasAffectedVersion(cleaned);
-            csvExporter.export(cleaned, "proportionResult");
+            csvExporter.export(cleaned, "4_proportion_applied");
 
             log.info("=== Post-proportion validation ===");
             consistency.checkAll(cleaned);
@@ -124,7 +124,7 @@
             );
             metricsOrchestrator.computeAll(snapshots,1);
 
-            csvExporter.exportSnapshots(snapshots, "OPENJPA", "snapshotResult");
+            csvExporter.exportSnapshots(snapshots, "OPENJPA", "5_snapshots");
 
         }
     }
