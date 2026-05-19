@@ -6,6 +6,7 @@ projects:
     jql: "issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"
 
 git:
+  cloneUrl: https://github.com/apache/openjpa.git
   repoDir: gitclones/openjpa
   codeOutputDir: output/code
 

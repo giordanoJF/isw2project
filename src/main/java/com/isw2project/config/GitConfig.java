@@ -2,8 +2,12 @@ package com.isw2project.config;
 
 public class GitConfig {
 
+    private String cloneUrl;
     private String repoDir;
     private String codeOutputDir;
+
+    public String getCloneUrl() { return cloneUrl; }
+    public void setCloneUrl(String cloneUrl) { this.cloneUrl = cloneUrl; }
 
     public String getRepoDir() { return repoDir; }
     public void setRepoDir(String repoDir) { this.repoDir = repoDir; }

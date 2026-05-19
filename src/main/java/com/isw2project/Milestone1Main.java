@@ -17,6 +17,9 @@
     import com.isw2project.proportion.InjectedVersionService;
     import com.isw2project.proportion.ProportionOrchestrator;
     import com.isw2project.proportion.ProportionService;
+    import com.isw2project.repocloner.RepoCloneOrchestrator;
+    import com.isw2project.repocloner.RepoCloneService;
+    import org.eclipse.jgit.api.errors.GitAPIException;
     import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
 
@@ -38,6 +41,13 @@
 
             // Load the configuration
             AppConfig config = ConfigLoader.load("config.yaml");
+
+            // Ensure the project repository is present locally before any Git operations
+            try {
+                new RepoCloneOrchestrator(new RepoCloneService()).ensureCloned(config.getGit());
+            } catch (GitAPIException e) {
+                throw new IllegalStateException("Failed to clone repository: " + e.getMessage(), e);
+            }
 
             // Instantiate the downloader orchestrator
             DownloaderOrchestrator downloader = new DownloaderOrchestrator(config);

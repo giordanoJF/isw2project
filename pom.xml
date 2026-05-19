@@ -67,11 +67,18 @@
             <version>3.8.6</version>
         </dependency>
 
-        <!-- Bridge java.util.logging → SLF4J (silences Weka/netlib JUL output) -->
+        <!-- Bridge java.util.logging -> SLF4J (silences Weka/netlib JUL output) -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
             <version>2.0.9</version>
+        </dependency>
+
+        <!-- Pure-Java Git client (no git CLI required) used to clone the project repo -->
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+            <version>7.1.0.202411261347-r</version>
         </dependency>
 
     </dependencies>
