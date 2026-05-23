@@ -62,14 +62,14 @@ classifier:
     # = 95,000 NaiveBayes fits per combination). Estimated 1-3 hours per combination.
     # With 3 classifiers x 4 balancing options = 12 combinations per search direction.
     # Total additional runtime if both enabled: potentially 1-3 days.
-    # - FORWARD_SEARCH   # SLOW — starts from 0 features, adds one at a time
-    # - BACKWARD_SEARCH  # SLOW — starts from all features, removes one at a time
+    - FORWARD_SEARCH   # SLOW — starts from 0 features, adds one at a time
+    - BACKWARD_SEARCH  # SLOW — starts from all features, removes one at a time
 
   balancing:
     - NONE            # no overhead
     - UNDERSAMPLING   # fast, reduces training set (approximately 2.7k instances after balancing)
     - OVERSAMPLING    # moderate, grows training set (approximately 27k instances after balancing)
-    #- SMOTE           # SLOWER than oversampling — generates approximately 12.5k synthetic instances,
+    - SMOTE           # SLOWER than oversampling — generates approximately 12.5k synthetic instances,
                       #   growing the training set to approximately 27k; k-NN computation adds overhead
 
   crossValidation:
