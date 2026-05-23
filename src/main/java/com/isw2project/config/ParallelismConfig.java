@@ -13,9 +13,9 @@ package com.isw2project.config;
  * Runtime.getRuntime().availableProcessors() to avoid oversubscription.
  *
  * Values accept three formats:
- *   "auto"  — automatic (combinations = all cores; rfSlots = cores / combinations)
- *   "8"     — explicit thread count
- *   "50%"   — percentage of available CPU cores (rounded, minimum 1)
+ *   "auto"  - automatic (combinations = all cores; rfSlots = cores / combinations)
+ *   "8"     - explicit thread count
+ *   "50%"   - percentage of available CPU cores (rounded, minimum 1)
  */
 public class ParallelismConfig {
 

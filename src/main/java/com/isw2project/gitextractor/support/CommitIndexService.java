@@ -35,7 +35,7 @@ public class CommitIndexService {
     /**
      * Returns a map of issueKey -> set of repository-relative file paths touched
      * by commits whose message contains that issue key.
-     * The index is built once and cached — subsequent calls return the same instance.
+     * The index is built once and cached - subsequent calls return the same instance.
      * Returns an empty map and logs the error if the git command fails.
      */
     public Map<String, Set<String>> buildIssueToFilesIndex() {

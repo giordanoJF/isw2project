@@ -57,7 +57,7 @@ public class ClassifierOrchestrator {
     }
 
     public void run() {
-        log.info("=== Milestone 2 — Classifier Evaluation ===");
+        log.info("=== Milestone 2 - Classifier Evaluation ===");
 
         Instances data;
         try {
@@ -187,7 +187,7 @@ public class ClassifierOrchestrator {
             try {
                 result.add(ClassifierType.valueOf(s));
             } catch (IllegalArgumentException _) {
-                log.warn("Unknown classifier '{}' in config — skipped", s);
+                log.warn("Unknown classifier '{}' in config - skipped", s);
             }
         }
         return result;
@@ -199,7 +199,7 @@ public class ClassifierOrchestrator {
             try {
                 result.add(FeatureSelectionStrategy.valueOf(s));
             } catch (IllegalArgumentException _) {
-                log.warn("Unknown FS strategy '{}' in config — skipped", s);
+                log.warn("Unknown FS strategy '{}' in config - skipped", s);
             }
         }
         return result;
@@ -211,7 +211,7 @@ public class ClassifierOrchestrator {
             try {
                 result.add(BalancingStrategy.valueOf(s));
             } catch (IllegalArgumentException _) {
-                log.warn("Unknown balancing strategy '{}' in config — skipped", s);
+                log.warn("Unknown balancing strategy '{}' in config - skipped", s);
             }
         }
         return result;

@@ -63,9 +63,8 @@ public class FeatureSelectionBuilderService {
     }
 
     private AttributeSelection buildWrapper(boolean searchBackwards) {
-        // WrapperSubsetEval valuta ogni sottoinsieme di attributi addestrando
-        // un classificatore (NaiveBayes) e misurando la sua performance.
-        // È il metodo più accurato ma anche il più costoso computazionalmente.
+        // WrapperSubsetEval evaluates each attribute subset by training a
+        // classifier (NaiveBayes) and measuring its performance via inner CV.
         WrapperSubsetEval wrapperEval = new WrapperSubsetEval();
         wrapperEval.setClassifier(new NaiveBayes());
 

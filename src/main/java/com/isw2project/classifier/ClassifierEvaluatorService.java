@@ -11,10 +11,10 @@ import java.util.Random;
 /**
  * Runs 10-times 10-fold cross-validation and returns averaged performance metrics.
  *
- * WHAT THIS CV IS FOR — ESTIMATION, NOT HYPERPARAMETER SELECTION:
+ * WHAT THIS CV IS FOR - ESTIMATION, NOT HYPERPARAMETER SELECTION:
  * CV has two distinct uses. The first is selecting the best hyperparameter
- * configuration (try A, B, C with CV, pick the winner). The second — what
- * this class does — is estimating how well a fixed configuration generalizes
+ * configuration (try A, B, C with CV, pick the winner). The second - what
+ * this class does - is estimating how well a fixed configuration generalizes
  * to unseen data. No choice is made inside the CV loop: each combination
  * defined in config.yaml gets its own independent estimate, and comparison
  * across combinations happens afterward by reading the output CSV.
@@ -24,7 +24,7 @@ import java.util.Random;
  * Evaluation object. Each prediction is produced by a model that had NOT
  * seen that instance during training (it was in the test fold at that
  * point). Accumulating N honest predictions is not the same as training
- * on all data and predicting on all data — there, the model already knows
+ * on all data and predicting on all data - there, the model already knows
  * the answers. Here every instance is predicted exactly once by a model
  * that never trained on it.
  *

@@ -43,7 +43,7 @@
  *    class level to silence compiler warnings caused by the original use of
  *    raw types (pre-generics Java style) and the deprecated Double constructor.
  *
- * The doSMOTE() method — which contains the entire algorithm — is identical
+ * The doSMOTE() method - which contains the entire algorithm - is identical
  * to the original.
  */
 

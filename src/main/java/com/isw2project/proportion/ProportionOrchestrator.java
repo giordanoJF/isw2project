@@ -26,7 +26,7 @@ public class ProportionOrchestrator {
             Optional<Double> p = proportionService.computeP(project);
 
             if (p.isEmpty()) {
-                log.warn("Project [{}] could not compute P — no valid issues found.", project.getProjectKey());
+                log.warn("Project [{}] could not compute P - no valid issues found.", project.getProjectKey());
                 return;
             }
 

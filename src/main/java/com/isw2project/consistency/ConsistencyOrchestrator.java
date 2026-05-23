@@ -35,7 +35,7 @@ public class ConsistencyOrchestrator {
     }
 
     public List<ProjectData> checkIssueCreatedAfterOldestVersion(List<ProjectData> projects) {
-        // per-project check — each project uses its own version list
+        // per-project check - each project uses its own version list
         return applyPerProjectIssueCheck(projects,
                 IssueCreatedAfterOldestVersionCheck::new);
     }

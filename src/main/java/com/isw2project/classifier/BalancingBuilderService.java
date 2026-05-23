@@ -13,7 +13,7 @@ import weka.filters.supervised.instance.SpreadSubsample;
  * Balancing is applied only on the training fold (inside FilteredClassifier), never on
  * the test fold. The two sets have opposite roles: the training set must be modified so
  * the classifier cannot take the shortcut of always predicting the majority class; the
- * test set must be left untouched because it represents reality — the real class
+ * test set must be left untouched because it represents reality - the real class
  * distribution the model will face in production.
  *
  * Class-ratio parameters (SMOTE percentage, Resample size) are estimated from

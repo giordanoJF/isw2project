@@ -14,7 +14,7 @@ import java.util.Arrays;
  *
  * Weka 3.8 stable does not include a Spearman-based AttributeEvaluator.
  * CorrelationAttributeEval (Pearson) is available, but Pearson assumes a linear
- * relationship and is sensitive to outliers — both problematic for skewed code
+ * relationship and is sensitive to outliers - both problematic for skewed code
  * metrics such as LOC or churn. This class is an original implementation written
  * from scratch, based on the standard mathematical definition (Spearman, 1904).
  * No external source or reference implementation was used.

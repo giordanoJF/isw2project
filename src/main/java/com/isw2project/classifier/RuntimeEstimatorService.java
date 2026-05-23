@@ -11,10 +11,10 @@ import java.util.List;
  *
  * CALIBRATION HISTORY:
  *
- * v1 — original estimates from config.yaml comments (reference hardware unknown):
+ * v1 - original estimates from config.yaml comments (reference hardware unknown):
  *   RF=60s, IBk=15s, NaiveBayes=5s; OVERSAMPLING x1.1; UNDERSAMPLING x1.0
  *
- * v2 — calibrated from a measured run (OpenJPA, 15k instances,
+ * v2 - calibrated from a measured run (OpenJPA, 15k instances,
  *   19 features, 10x10 CV, 4 combination threads, rfSlots=1):
  *
  *   Classifier base times (NONE FS, NONE balancing):
@@ -23,11 +23,11 @@ import java.util.List;
  *     NB=6s    (measured: [10/27] NB|No|No: 21:38:12->21:38:18)
  *
  *   Balancing multipliers (vs NONE baseline):
- *     UNDERSAMPLING x0.20  — shrinks training to approximately 2.7k instances (from 15k);
+ *     UNDERSAMPLING x0.20  - shrinks training to approximately 2.7k instances (from 15k);
  *                            RF: 757->151s (x0.20), IBk: 227->37s (x0.16)
- *     OVERSAMPLING  x1.65  — grows training to approximately 27k instances (from 15k);
+ *     OVERSAMPLING  x1.65  - grows training to approximately 27k instances (from 15k);
  *                            RF: 757->1254s (x1.66), IBk: 227->331s (x1.46)
- *     SMOTE         x2.0   — similar to OVERSAMPLING but adds k-NN overhead;
+ *     SMOTE         x2.0   - similar to OVERSAMPLING but adds k-NN overhead;
  *                            no direct measurement, estimated from OVERSAMPLING
  *
  *   FS overhead: filter methods (InfoGain, Spearman) are negligible for RF and IBk
@@ -56,13 +56,13 @@ public class RuntimeEstimatorService {
     private static final int BASE_NB  =   6;
 
     // FS overhead in seconds added to NaiveBayes combinations only
-    // (RF and IBk show <5% FS overhead — negligible)
+    // (RF and IBk show <5% FS overhead - negligible)
     private static final int NB_FILTER_FS_OVERHEAD_S = 12;
 
     // FS overhead for wrapper methods (source: config.yaml "estimated 1-3 hours")
     private static final int WRAPPER_OVERHEAD_S = 3600; // lower bound
 
-    // Balancing multipliers (source: calibrated from actual run — see header)
+    // Balancing multipliers (source: calibrated from actual run - see header)
     private static final double UNDERSAMPLING_MULT = 0.20; // 5x speedup
     private static final double OVERSAMPLING_MULT  = 1.65;
     private static final double SMOTE_MULT         = 2.00; // estimated, not measured

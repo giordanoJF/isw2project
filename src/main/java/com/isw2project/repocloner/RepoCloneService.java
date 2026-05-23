@@ -20,7 +20,7 @@ import java.io.File;
  * WHY SHALLOW (depth=1):
  * A full clone of OpenJPA downloads the entire commit history (~20 000+ commits).
  * This project only needs the source tree at each tagged release, not the full
- * history — the GitExtractorOrchestrator checks out specific refs by tag name.
+ * history - the GitExtractorOrchestrator checks out specific refs by tag name.
  * A shallow clone transfers only the latest snapshot of each branch/tag, reducing
  * download size and clone time significantly.
  *

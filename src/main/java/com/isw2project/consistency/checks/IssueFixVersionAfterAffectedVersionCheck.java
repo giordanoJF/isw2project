@@ -19,7 +19,7 @@ public class IssueFixVersionAfterAffectedVersionCheck implements IssueCheck {
         if (fixVersions == null || fixVersions.isEmpty()) return false;
         if (fixVersions.getFirst().getReleaseDate() == null) return false;
 
-        // if no AV, pass — proportion will predict IV later
+        // if no AV, pass - proportion will predict IV later
         if (affectedVersions == null || affectedVersions.isEmpty()) return true;
 
         LocalDate fixDate = LocalDate.parse(fixVersions.getFirst().getReleaseDate());

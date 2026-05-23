@@ -16,7 +16,7 @@ import java.util.List;
  * NPofB20 is not provided by Weka: it requires accessing the raw per-instance
  * predictions (Evaluation.predictions()), sorting them by predicted probability,
  * and performing a custom computation. That logic does not belong in
- * ClassifierEvaluatorService, which is responsible for running CV — not for
+ * ClassifierEvaluatorService, which is responsible for running CV - not for
  * computing custom metrics. Isolating it here keeps both classes focused on a
  * single responsibility.
  *
