@@ -37,7 +37,8 @@
 
         private static final Logger log = LoggerFactory.getLogger(Milestone1Main.class);
 
-        static void main() {
+        @SuppressWarnings("java:S1172")
+    public static void main(String[] args) {
 
             // Load the configuration
             AppConfig config = ConfigLoader.load("config.yaml");
