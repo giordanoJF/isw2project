@@ -2,6 +2,8 @@
 
 ## Regole sui commit
 
+**NON COMMITTARE MAI DI PROPRIA INIZIATIVA.** Eseguire `git commit` solo quando l'utente lo chiede esplicitamente.
+
 **Non includere mai** Co-Authored-By, "Generated with Claude", né alcuna attribuzione a Claude nei messaggi di commit.
 
 ---
