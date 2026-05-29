@@ -1,0 +1,45 @@
+\section{Conclusioni}
+
+\subsection{Milestone 1}
+
+La Milestone 1 ha prodotto un dataset strutturato di 15.338 snapshot di classi Java per
+il progetto Apache OpenJPA, corredato di 19 metriche e
+dell'etichetta di bugginess. Il processo di costruzione ha richiesto numerose scelte
+metodologiche riguardanti il filtraggio delle versioni, la sanitizzazione dei ticket, la
+gestione delle versioni prive di tag Git e la definizione dello shift temporale per i code
+smell. Le scelte adottate privilegiano la pulizia e la coerenza dei dati rispetto alla
+massimizzazione della dimensione del dataset.
+
+\subsection{Milestone 2}
+
+Il run preliminare (27 combinazioni, SMOTE e wrapper disabilitati) evidenzia che
+RandomForest domina su tutte le metriche di ranking (AUC $= 0{,}94$, NPofB20 $= 0{,}88$
+senza balancing), confermando le aspettative della letteratura di defect prediction. Le
+sue probabilità ben calibrate --- prodotto dell'averaging su 100 alberi --- lo rendono
+il classificatore più affidabile per la prioritizzazione delle code review su questo dataset.
+
+La feature selection con soglia $0{,}0$ si è rivelata un no-op: tutte le 19 feature
+portano informazione sulla bugginess e nessuna viene eliminata dai metodi filter. I metodi
+wrapper potrebbero identificare sottoinsiemi più compatti, ma i tempi di esecuzione ne
+hanno finora impedito l'utilizzo.
+
+Il trade-off tra Recall e Kappa introdotto dall'Undersampling (Recall RF: $0{,}52 \to
+0{,}86$; Kappa: $0{,}58 \to 0{,}37$) mostra che la scelta della strategia di balancing
+dipende dal contesto applicativo: se il costo di un bug sfuggito è prioritario (es.\
+sicurezza), l'Undersampling è preferibile; se si vuole un bilancio complessivo,
+l'Oversampling è la scelta migliore per RF. NaiveBayes è strutturalmente limitato dalla
+violazione dell'assunzione di indipendenza condizionale: il bilanciamento non ne migliora
+le performance perché il problema non è l'imbalance ma le correlazioni tra feature.
+
+% TODO: completare le conclusioni con i risultati del run finale (SMOTE + wrapper FS +
+% dataset aggiuntivi BOOKKEEPER/KAFKA). Aggiornare questa sezione al termine
+% dell'esecuzione e integrare il confronto tra dataset multipli.
+
+\subsection{Milestone 3}
+
+% TODO: sintetizzare quante classi buggy avrebbero potuto essere prevenute e
+% cosa implica questo risultato.
+
+\subsection{Milestone 4}
+
+% TODO: sintetizzare i risultati del refactoring automatico e le implicazioni pratiche.

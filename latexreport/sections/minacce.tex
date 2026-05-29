@@ -1,0 +1,69 @@
+\section{Minacce alla validità}
+
+\subsection{Milestone 1}
+
+\paragraph{Linkage commit--ticket}
+Il linkage avviene tramite la presenza della chiave del ticket nel messaggio di commit.
+Questa assunzione introduce due rischi simmetrici:
+commit che correggono un bug senza citare la chiave non vengono associati (falsi negativi),
+mentre commit che citano la chiave per ragioni diverse dalla correzione vengono inclusi
+erroneamente (falsi positivi).
+
+\paragraph{Stima con Proportion}
+Proportion introduce inevitabilmente rumore nel dataset. Tuttavia, l'approccio adottato
+dà priorità alle AV esplicite, limitando il ricorso a Proportion ai soli ticket privi di
+esse.
+
+\paragraph{Release senza tag Git}
+Tre versioni Jira non dispongono di un tag Git corrispondente. I loro snapshot non sono
+inclusi nel dataset, il che può comportare una sottostima della bugginess per le classi
+che avrebbero dovuto comparire in quelle release.
+
+\paragraph{Utilizzo delle Fix Version come Affected Version}
+Per i ticket privi di AV ma con FV disponibili, le FV tranne l'ultima vengono
+interpretate come AV. Questa scelta introduce una minaccia alla validità. È quindi possibile
+che alcune versioni vengano etichettate come affette da un bug quando in realtà non lo
+erano. La scelta è stata comunque preferita al ricorso sistematico a Proportion, che per definizione
+costituisce anch'essa una stima e introduce un diverso tipo di rumore.
+
+\subsection{Milestone 2}
+
+\paragraph{Temporal leakage strutturale}
+La 10$\times$10 fold CV assegna le istanze ai fold in modo casuale, senza rispettare
+l'ordine temporale delle release. Il modello può essere addestrato su informazioni
+``future'' rispetto a parte del set di test: nelle versioni più recenti i bug esistenti
+nelle versioni precedenti sono già stati corretti, e il modello apprende pattern che non
+sarebbero stati disponibili al momento della predizione reale. Le metriche risultanti
+tendono a essere leggermente ottimistiche rispetto all'accuratezza in produzione.
+Alternativa: Walk-Forward Validation (discussa nella sezione sulla metodologia).
+
+\paragraph{Nessun tuning degli iperparametri}
+I classificatori usano i valori di default di Weka (100 alberi per RandomForest, $k=1$
+per IBk). Un tuning via grid search migliorerebbe i risultati ma richiederebbe un
+ulteriore livello di cross-validation annidata, aumentando ulteriormente i tempi di
+esecuzione.
+
+\paragraph{Classificatore interno dei metodi wrapper}
+I metodi wrapper usano NaiveBayes come classificatore interno per valutare i subset
+candidati. Il subset di feature ottimale per NaiveBayes potrebbe non essere ottimale per
+RandomForest o IBk, che vengono poi valutati esternamente con quel subset.
+
+\paragraph{Approssimazione della percentuale SMOTE}
+La percentuale di oversampling SMOTE è calcolata sull'intero dataset. La percentuale
+esatta per-fold varia del $\approx$10\% (ogni training fold ha il 90\% delle istanze),
+introducendo una piccola imprecisione nel bilanciamento.
+
+\paragraph{Limitazione dello spazio di ricerca nei metodi wrapper}
+Con 19 feature, GreedyStepwise è computazionalmente trattabile. Con un numero
+significativamente maggiore di feature il costo crescerebbe quadraticamente e la ricerca
+greedy diventerebbe meno affidabile nel trovare l'ottimo globale.
+
+\subsection{Milestone 3}
+
+% TODO: descrivere le assunzioni alla base dell'analisi dell'impatto dei code smell
+% e i possibili limiti della metodologia adottata.
+
+\subsection{Milestone 4}
+
+% TODO: descrivere i limiti del refactoring automatico, le assunzioni sui test
+% e le possibili conseguenze di scelte soggettive nel prompt.

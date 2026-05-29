@@ -1,0 +1,350 @@
+\subsection{Milestone 1 -- Costruzione del dataset}
+
+\subsubsection{Raccolta e filtraggio delle versioni}
+
+Le versioni del progetto sono state scaricate tramite le API REST di Jira. Sono state
+considerate esclusivamente le versioni di tipo \emph{release}, ovvero quelle per cui il
+campo \texttt{released} risulta vero e che dispongono di una data di rilascio
+(\texttt{releaseDate}). Le versioni prive di uno di questi due attributi sono state
+scartate. In totale, per Apache OpenJPA, sono state identificate 42 versioni valide.
+
+I ticket estratti dalla API REST di Jira sono stati filtrati attraverso la seguente jql:
+\textit{"issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed"}
+
+Per la costruzione degli snapshot e il calcolo delle metriche è stato deciso di
+considerare solo il \textbf{primo 33\% delle release} in ordine cronologico, come da
+specifica del progetto. Questo equivale a 14 release su 42. Questa scelta è stata fatta in vista di ridurre al minimo il numero di bug dormienti e/o "snoring" del progetto analizzato, i quali compaiono statisticamente sempre piu spesso avanzando verso le versioni recenti.
+
+\subsubsection{Raccolta dei ticket Jira}
+
+Ogni ticket è modellato con i seguenti campi rilevanti:
+\begin{itemize}
+    \item \textbf{created}: data di creazione del ticket, in formato \texttt{yyyy-MM-dd}.
+    \item \textbf{affectedVersions (AV)}: versioni nelle quali il sistema è affetto dal bug.
+    \item \textbf{fixVersions (FV)}: versioni nelle quali il bug è stato corretto.
+    \item \textbf{openingVersion (OV)}: prima versione del progetto cronologicamente
+    precedente alla data di creazione del ticket.
+    \item \textbf{injectedVersion (IV)}: la AV meno recente del ticket, calcolata
+    dinamicamente in quanto fortemente accoppiata alla lista di AV, modificata più volte
+    durante i check di consistenza.
+\end{itemize}
+
+\subsubsection{Arricchimento dei ticket}
+
+Prima dei check di consistenza, i ticket vengono arricchiti tramite le seguenti operazioni:
+
+\begin{enumerate}
+    \item \textbf{Calcolo della Opening Version}: la OV è la prima versione del progetto
+    precedente cronologicamente alla data di creazione del ticket. I ticket privi di data
+    di creazione o con data antecedente a qualsiasi versione del progetto vengono scartati. Questo poichè non è ragionevole lavorare con ticket privi di informazioni basilari o che sono stati aperti prima ancora di aver avuto la prima release di un progetto, i quali avrebbero bisogno di un approccio dedicato, senza il quale rischieremmo di portare rumore nei dati. Questo approccio sceglie la qualità dei dati rispetto alla quantità.
+
+    \item \textbf{Riduzione a una singola Fix Version}: per i ticket con più FV viene
+    mantenuta solo la più recente, ritenuta la più affidabile. Anche in questo caso è stato preferito lavorare con informazioni piu precise al costo di perderne una parte minima.
+
+    \item \textbf{Rimozione delle versioni senza data}: le versioni referenziate nei campi
+    dei ticket prive di data di rilascio vengono rimosse direttamente dai campi del ticket. Questo sulla base della scelta di non usare versioni senza release date.
+
+    \item \textbf{Impostazione delle AV a partire dalle FV}: se un ticket non possiede AV
+    ma ha FV, le FV tranne l'ultima vengono interpretate come AV. Questa scelta potrebbe essere
+    preferibile all'utilizzo di Proportion, che per definizione costituisce una stima. L'interpretazione fatta mira a raccogliere informazioni dai ticket sulla base di un'ipotesi, che potrebbe essere corretta o meno.
+
+    \item \textbf{Rimozione delle versioni non più valide}: dopo i check di consistenza,
+    le versioni rimosse vengono eliminate anche dai riferimenti presenti nei campi dei
+    ticket.
+\end{enumerate}
+
+\subsubsection{Check di consistenza}
+
+I check di consistenza sono componenti modulari e indipendenti, ciascuno con una singola
+responsabilità. Alcuni check sui ticket devono essere eseguiti solo dopo determinate
+operazioni di enriching, motivo per cui vengono invocati in uno specifico ordine.
+
+\paragraph{Check sui ticket}
+\begin{itemize}
+    \item \textbf{IssueHasKeyCheck}: il ticket deve avere una chiave identificativa.
+    \item \textbf{IssueHasCreatedDateCheck}: il ticket deve avere una data di creazione.
+    \item \textbf{IssueHasFixVersionCheck}: il ticket deve avere almeno una FV.
+    \item \textbf{IssueHasAffectedVersionCheck}: il ticket deve avere almeno una AV.
+    \item \textbf{IssueFixVersionHasReleaseDateCheck}: la FV deve avere una data di rilascio.
+    \item \textbf{IssueAllVersionsHaveReleaseDateCheck}: tutte le versioni referenziate
+    devono avere una data di rilascio.
+    \item \textbf{IssueCreatedAfterOldestVersionCheck}: la data di creazione deve essere
+    successiva alla data della versione più vecchia del progetto.
+    \item \textbf{IssueFixVersionAfterAffectedVersionCheck}: la FV deve essere
+    necessariamente successiva a ogni AV. I ticket non conformi vengono scartati. Si è
+    preferito scartare il ticket piuttosto che rimuovere le AV inconsistenti, per evitare
+    di modificare soggettivamente il significato del ticket.
+    \item \textbf{IssueFixVersionAfterEqualOpeningVersionCheck}: deve esistere almeno una
+    FV con $\text{FV} \geq \text{OV}$. Eseguito solo su ticket con singola FV.
+\end{itemize}
+
+\paragraph{Check sulle versioni}
+\begin{itemize}
+    \item \textbf{VersionHasNameCheck}: la versione deve avere un nome.
+    \item \textbf{VersionHasReleaseDateCheck}: la versione deve avere una data di rilascio.
+    \item \textbf{VersionIsReleasedCheck}: la versione deve essere di tipo release.
+\end{itemize}
+
+\subsubsection{Stima delle Affected Versions con Proportion}
+
+Per i ticket privi di AV dopo le operazioni di enriching, le AV vengono stimate tramite la
+tecnica \textbf{Proportion} con approccio \emph{cold start}. Il valore $P$ è calcolato
+come la media di $(FV - IV) / (FV - OV)$ su tutti i ticket con FV, IV e OV disponibili.
+I ticket con $FV = OV$ vengono esclusi dal calcolo per evitare la divisione per zero.
+La IV stimata viene calcolata come:
+
+\[
+IV = FV - P \cdot (FV - OV)
+\]
+
+Se la IV predetta coincide con la FV il ticket viene scartato. Per Apache OpenJPA, un
+ticket è stato rimosso per questa ragione.
+
+\subsubsection{Estrazione degli snapshot di classi Java}
+
+Gli snapshot (classe al tempo dell'ultimo commit di una release) sono stati estratti dal repository Git locale tramite comandi Git invocati
+programmaticamente. Per ogni release viene identificato il tag Git corrispondente;
+i file vengono elencati con \texttt{git ls-tree -r --name-only <tag>} e il codice sorgente
+estratto con \texttt{git show <tag>:<path>}, salvato su disco per release.
+
+Sono considerate esclusivamente le classi che soddisfano i seguenti criteri:
+\begin{itemize}
+    \item il percorso termina con \texttt{.java};
+    \item il percorso non contiene directory di test (\texttt{/test/} o \texttt{/tests/});
+    \item il nome del file non termina con \texttt{Test.java} o \texttt{Tests.java}.
+\end{itemize}
+
+\paragraph{Corrispondenza versioni Jira -- tag Git}
+
+La risoluzione del tag Git per ogni versione Jira segue questa strategia:
+\begin{enumerate}
+    \item \textbf{Match esatto}: nome versione Jira $=$ nome tag (es.\ \texttt{1.0.0}).
+    \item \textbf{Match con suffisso}: il tag inizia con il nome versione seguito da
+    trattino, escludendo i tag \texttt{SNAPSHOT} (es.\ \texttt{0.9.6-incubating}).
+    \item \textbf{Nessun match}: la versione viene saltata.
+\end{enumerate}
+
+Tre versioni Jira (\texttt{0.9.0}, \texttt{2.0.0-M1}, \texttt{2.0.0-M2}) non dispongono
+di un tag Git e sono state escluse dagli snapshot, mantenendo però i ticket che le
+referenziano. Si è scelto di non compensare le release saltate nel calcolo del 33\%, sempre per non avvicinarci troppo ai bug dormienti.
+
+\subsubsection{Etichettatura degli snapshot (Bugginess)}
+
+Uno snapshot (\emph{classPath}, \emph{release}) viene etichettato come \textbf{buggy} se
+esiste almeno un ticket tale che:
+\begin{enumerate}
+    \item la release dello snapshot è inclusa tra le AV del ticket;
+    \item almeno un commit il cui messaggio contiene la chiave del ticket coinvolge il
+    percorso della classe.
+\end{enumerate}
+
+Il processo è basato sul seguente ragionamento: se una classe è toccata da un commit che referenzia un ticket issue, allora quella classe sarà "Buggy" in ogni AV del ticket.
+
+Il linkage tra ticket e commit avviene tramite un indice globale costruito con un singolo
+\texttt{git log --all --name-only}, che associa a ogni chiave di ticket l'insieme dei
+file toccati dai commit che la citano.
+
+\subsubsection{Calcolo delle metriche}
+
+Per ogni snapshot vengono calcolate le seguenti metriche.
+
+\paragraph{Metriche puntuali}
+Calcolate sullo stato del file all'ultimo commit della release:
+\begin{itemize}
+    \item \textbf{LOC}: righe di codice non vuote.
+    \item \textbf{Previous\_Release\_Code\_Smells}: violazioni PMD rilevate nella release
+    immediatamente precedente.
+\end{itemize}
+
+\paragraph{Metriche cumulative}
+Calcolate su tutti i commit del file dall'inizio della storia fino alla release corrente:
+
+\begin{itemize}
+    \item \textbf{LOC\_Touched}: somma di righe aggiunte e cancellate in ogni commit.
+    $\text{LOC\_Touched} = \sum (\text{linesAdded} + \text{linesDeleted})$
+
+    \item \textbf{NR}: numero totale di commit che hanno modificato il file.
+    $\text{NR} = \text{count}(\text{commit sul file})$
+
+    \item \textbf{Nfix}: numero di ticket la cui \texttt{fixVersion} corrisponde alla
+    release corrente e i cui commit citano la chiave del ticket e toccano il file.\\
+    $\text{Nfix} = \text{count}(\text{ticket con FV = release AND classPath} \in \text{file toccati})$
+
+    \item \textbf{Nauth}: numero di autori distinti (per email) che hanno effettuato
+    almeno un commit sul file.
+    $\text{Nauth} = \text{count}(\text{authorEmail distinti})$
+
+    \item \textbf{LOC\_Added}: somma delle sole righe aggiunte in ogni commit.
+    $\text{LOC\_Added} = \sum \text{linesAdded}$
+
+    \item \textbf{Max\_LOC\_Added}: massimo numero di righe aggiunte in un singolo commit.
+    $\text{Max\_LOC\_Added} = \max(\text{linesAdded})$
+
+    \item \textbf{Avg\_LOC\_Added}: media delle righe aggiunte per commit.
+    $\text{Avg\_LOC\_Added} = \text{LOC\_Added} / \text{NR}$
+
+    \item \textbf{Churn}: somma di righe aggiunte e cancellate per ogni commit. Misura
+    il volume di riscrittura del codice nel tempo, concettualmente distinto da LOC\_Touched
+    anche se numericamente equivalente.
+    $\text{Churn} = \sum (\text{linesAdded} + \text{linesDeleted})$
+
+    \item \textbf{Max\_Churn}: massimo churn registrato in un singolo commit.
+    $\text{Max\_Churn} = \max(\text{linesAdded} + \text{linesDeleted})$
+
+    \item \textbf{Avg\_Churn}: churn medio per commit.
+    $\text{Avg\_Churn} = \text{Churn} / \text{NR}$
+
+    \item \textbf{Change\_Set\_Size}: somma del numero di file committati insieme a questo
+    file in ogni commit. Un valore alto indica forte accoppiamento con altre classi.
+    $\text{Change\_Set\_Size} = \sum \text{changeSetSize}$
+
+    \item \textbf{Max\_Change\_Set}: massimo numero di file committati insieme in un
+    singolo commit.
+    $\text{Max\_Change\_Set} = \max(\text{changeSetSize})$
+
+    \item \textbf{Avg\_Change\_Set}: media del change set per commit.
+    $\text{Avg\_Change\_Set} = \text{Change\_Set\_Size} / \text{NR}$
+
+    \item \textbf{Age}: giorni tra il primo commit che ha introdotto il file e la data
+    di rilascio della release.
+    $\text{Age} = \text{releaseDate} - \text{data primo commit}$
+
+    \item \textbf{Weighted\_Age}: Age moltiplicato per LOC\_Touched. Combina anzianità
+    e volume di attività: un file vecchio ma mai modificato ha valore basso, un file
+    vecchio e molto modificato ha valore alto.
+    $\text{Weighted\_Age} = \text{Age} \times \text{LOC\_Touched}$
+\end{itemize}
+
+\paragraph{Metriche di commit}
+Calcolate sui commit, e non sulle classi a differenza delle precedenti:
+\begin{itemize}
+    \item \textbf{EXP} (\textit{Developer Experience}): misura, per ciascun commit che ha interessato il file fino alla release considerata, il numero di \textit{commit-day} distinti accumulati globalmente dall'autore nell'intera repository; il valore finale è la media di tale esperienza su tutti i commit del file.
+    \item \textbf{SEXP} (\textit{Subsystem Developer Experience}): applica la medesima logica restringendo il conteggio al solo sotto-sistema di appartenenza del file (identificato dal primo segmento del \textit{path}, tipicamente corrispondente al modulo Maven), catturando così la familiarità dell'autore con l'area specifica del codice.
+\end{itemize}
+Tali metriche sono state scelte in quanto non ridondanti rispetto a quelle già presenti (ad esempio, LA è coperta da \texttt{LOC\_Added}, NDEV da \texttt{Nauth} e NUC da \texttt{NR}) e implementabili senza modifiche architetturali rilevanti, sfruttando l'indice Git già costruito in memoria. Entrambe le metriche sono calcolate tramite ricerca binaria su liste preordinate costruite \textit{una tantum} al lancio, evitando ulteriori chiamate al processo \texttt{git}. Altre metriche quali \textit{Entropy}, NS e ND, pur di interesse, sono state escluse poiché avrebbero richiesto la definizione di un secondo indice (\textit{commit} $\to$ \textit{file}), comportando una modifica più invasiva all'architettura esistente.
+
+\paragraph{Code smell e shift temporale}
+
+I code smell sono rilevati tramite \textbf{PMD} con i ruleset \emph{bestpractices},
+\emph{design}, \emph{errorprone} e \emph{codestyle}. La metrica è denominata \newline \textbf{Previous\_Release\_Code\_Smells} in quanto contiene il conteggio rilevato nella
+release cronologicamente precedente, non in quella corrente. Questa scelta riflette
+il fatto che i code smell introdotti nella release $N$ non compromettono quella release,
+ma quelle successive:
+
+\[
+\text{Previous\_Release\_Code\_Smells}(\text{classe},\, N) = \text{Code\_Smells}(\text{classe},\, N-1)
+\]
+
+Gli snapshot della prima release e le classi che appaiono per la prima volta ricevono
+valore 0.
+
+\paragraph{Nota sui branch paralleli}
+
+OpenJPA sviluppava in parallelo un branch di manutenzione \texttt{1.x} e un branch di
+sviluppo \texttt{2.x}. Alcune classi introdotte nel branch \texttt{2.x} possono risultare
+assenti nella release \texttt{1.x} che si interpone cronologicamente. In tali casi il
+valore \texttt{Previous\_Release\_Code\_Smells} è 0, poiché la release precedente non
+contiene la classe. Questo comportamento è corretto rispetto alla logica implementata;
+l'alternativa di cercare l'ultima release in cui la classe era presente avrebbe introdotto
+una complessità maggiore e un salto temporale implicito nella definizione di
+``release precedente''.
+
+\subsubsection{Aggiornamenti alla pipeline durante la Milestone 2}
+
+Durante lo sviluppo della Milestone 2 sono state apportate tre modifiche ortogonali alla
+pipeline della Milestone 1. Nessuna altera la logica di calcolo delle metriche o della
+bugginess labeling.
+
+\paragraph{Clone automatico del repository (package \texttt{repocloner})}
+
+In precedenza il repository Git di OpenJPA doveva essere clonato manualmente prima
+dell'esecuzione. La cartella \texttt{gitclones/openjpa} non è versionata nel repository
+del progetto, quindi chi scaricava il codice doveva eseguire il clone a mano.
+
+È stato aggiunto il package \texttt{com.isw2project.repocloner}, con due classi che
+seguono il pattern service/orchestrator già usato nel resto del progetto:
+
+\begin{itemize}
+\item \texttt{RepoCloneService}: esegue il clone tramite \textbf{JGit} (libreria Java
+pura, senza dipendenze dal client \texttt{git} installato sul sistema) con
+\texttt{depth=1} (shallow clone) per limitare la dimensione del download.
+\item \texttt{RepoCloneOrchestrator}: controlla se \texttt{<repoDir>/.git} esiste già;
+se sì, salta il clone; altrimenti delega a \texttt{RepoCloneService}.
+\end{itemize}
+
+\texttt{Milestone1Main} chiama \texttt{RepoCloneOrchestrator.ensureCloned(config.getGit())}
+come primo passo, prima di qualsiasi operazione Git: avviare la Milestone 1 è sufficiente
+per rendere disponibile il repository localmente, senza eseguire manualmente un clone da
+riga di comando. Il client \texttt{git} di sistema rimane necessario per la fase di
+estrazione degli snapshot, che usa \texttt{ProcessBuilder} con \texttt{git ls-tree} e
+\texttt{git show}.
+
+Dipendenza aggiunta in \texttt{pom.xml}: \texttt{org.eclipse.jgit:org.eclipse.jgit:7.1.0}.
+L'URL del repository è configurabile tramite \texttt{git.cloneUrl} in \texttt{config.yaml}.
+
+\paragraph{Parametri di tuning configurabili (\texttt{MetricsConfig})}
+
+Tre parametri che influenzano il tempo di esecuzione e il consumo di memoria della
+Milestone 1 erano hardcoded come costanti statiche in \texttt{CodeSmellsMetric.java}.
+Sono stati spostati nella nuova sezione \texttt{metrics} di \texttt{config.yaml}:
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}p{0.32\textwidth}p{0.3\textwidth}p{0.3\textwidth}@{}}
+\toprule
+\textbf{Parametro} & \textbf{Prima} & \textbf{Dopo} \\
+\midrule
+Frazione di snapshot processati &
+argomento hardcoded passato a \texttt{computeAll()} &
+\texttt{metrics.snapshotPercentage} in \texttt{config.yaml} \\
+\addlinespace
+File analizzati per invocazione PMD &
+\texttt{static final int BATCH\_SIZE = 100} &
+\texttt{metrics.pmd.batchSize} \\
+\addlinespace
+Frazione core assegnata a PMD &
+\texttt{static final double CPU\_FRACTION = 0.5} &
+\texttt{metrics.pmd.cpuFraction} \\
+\bottomrule
+\end{tabular}
+\caption{Parametri di tuning spostati da costanti hardcoded a \texttt{config.yaml}.}
+\end{table}
+
+È stata aggiunta la classe \texttt{MetricsConfig} (con inner class \texttt{PmdConfig}),
+mappata da SnakeYAML come tutte le altre sezioni di \texttt{AppConfig}. Il parametro
+\texttt{snapshotPercentage} è particolarmente utile per i run di debug: impostarlo a
+\texttt{0.1} processa solo il 10\% degli snapshot, riducendo il tempo di esecuzione da
+ore a minuti.
+
+\paragraph{Riorganizzazione delle cartelle di output}
+
+Tutti gli output della Milestone 1 erano in cartelle con nomi generici
+(\texttt{originalResult}, \texttt{enrichedResult}, ecc.) direttamente sotto
+\texttt{output/}. Le cartelle sono state rinominate con nomi descrittivi e prefissi
+numerici che riflettono l'ordine di produzione, e spostate sotto
+\texttt{output/milestone1/}. Il CSV della Milestone 2 va sotto \texttt{output/milestone2/}.
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Vecchio percorso} & \textbf{Nuovo percorso} \\
+\midrule
+\texttt{output/originalResult/}   & \texttt{output/milestone1/1\_raw\_jira\_data/} \\
+\texttt{output/enrichedResult/}   & \texttt{output/milestone1/2\_enriched\_jira\_data/} \\
+\texttt{output/checkedResult/}    & \texttt{output/milestone1/3\_consistency\_checked/} \\
+\texttt{output/proportionResult/} & \texttt{output/milestone1/4\_proportion\_applied/} \\
+\texttt{output/snapshotResult/}   & \texttt{output/milestone1/5\_snapshots/} \\
+\texttt{output/code/}             & \texttt{output/milestone1/6\_extracted\_source/} \\
+\texttt{output/classifierResult/} & \texttt{output/milestone2/} \\
+\bottomrule
+\end{tabular}
+\caption{Riorganizzazione delle cartelle di output. I prefissi numerici rendono leggibile
+l'ordine di produzione dei dati lungo la pipeline.}
+\end{table}
+
+I path sono configurabili in \texttt{config.yaml} (campi \texttt{csv.outputDir},
+\texttt{git.codeOutputDir}, \texttt{classifier.inputCsv}, \texttt{classifier.outputDir}).
+Le directory vengono create automaticamente alla prima esecuzione se non esistono.

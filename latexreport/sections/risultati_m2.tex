@@ -1,0 +1,223 @@
+\subsection{Milestone 2 -- Identificazione di modelli accurati}
+
+\subsubsection{Run preliminare: 27 combinazioni (SMOTE e wrapper disabilitati)}
+
+I risultati riportati in questa sezione si riferiscono a un run preliminare con la
+configurazione default: 3 classificatori $\times$ 3 strategie di feature selection $\times$
+3 strategie di balancing = 27 combinazioni, con SMOTE e metodi wrapper disabilitati.
+
+La feature selection (NONE, InfoGain, Spearman) produce risultati identici alla terza
+cifra decimale per ogni coppia (Classificatore, Balancing): il fenomeno è discusso in
+dettaglio nella sezione successiva. Le righe della tabella riportano i valori con
+\textit{No FS} come rappresentativi di tutte e tre le strategie di feature selection.
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{Classificatore} & \textbf{Balancing} & \textbf{Precision} & \textbf{Recall} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+RandomForest  & None          & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
+RandomForest  & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+RandomForest  & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
+NaiveBayes    & None          & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+NaiveBayes    & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+NaiveBayes    & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+IBk           & None          & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+IBk           & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+IBk           & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+\bottomrule
+\end{tabular}
+\caption{Risultati del run preliminare (No FS; metriche arrotondate a 2 cifre decimali).
+I valori con InfoGain e Spearman sono identici a quelli riportati per ogni riga.}
+\end{table}
+
+\subsubsection{Feature selection come no-op su questo dataset}
+
+Per ogni coppia (Classificatore, Balancing), i valori con No FS, InfoGain e Spearman sono
+identici alla terza cifra decimale. La causa è che \texttt{InfoGainAttributeEval} +
+\texttt{Ranker(threshold=0.0)} mantiene tutti gli attributi con InfoGain $> 0$: le 19
+feature di OpenJPA sono tutte informative rispetto alla classe \texttt{isBuggy}, nessuna
+ha InfoGain esattamente zero. Analogamente, Spearman con soglia 0 mantiene tutto. Il
+modello addestrato è quindi identico al caso No FS.
+
+Questo non è un difetto della pipeline ma un risultato valido: \textbf{tutte le feature
+portano informazione} su questo dataset. I metodi wrapper (ForwardSearch, BackwardSearch)
+potrebbero trovare sottoinsiemi più compatti, ma i tempi di esecuzione (1--3 ore per
+singola combinazione) ne hanno finora impedito l'utilizzo. I run futuri con i wrapper
+permetteranno di verificare se esiste un sottoinsieme ottimale che supera il plateau
+attuale.
+
+\subsubsection{Kappa inferiore a 0,6: limite strutturale, non un difetto}
+
+Il valore $0{,}6$ è la soglia standard Landis \& Koch (1977) per l'``accordo sostanziale''
+in diagnostica medica. Tutti i valori di questo run sono sotto $0{,}6$ (il massimo è
+RF + Oversampling $= 0{,}59$). Esistono ragioni strutturali che spiegano perché questo
+valore sia un ceiling empirico, non un indicatore di modelli scadenti.
+
+\textbf{Vincolo matematico imposto dall'imbalance.} Con $\approx$9\% di buggy, l'accordo
+atteso per caso è $P_e \approx 0{,}836$. Per ottenere $\kappa = 0{,}6$ servirebbe
+$P_o = 0{,}934$, cioè il $93{,}4\%$ di predizioni corrette in valore assoluto: ogni
+falso positivo e ogni falso negativo incide pesantemente su $P_o$. Raggiungere
+simultaneamente alta precision e alto recall con un imbalance così severo è
+matematicamente difficile: aumentare il recall genera falsi positivi (abbassa $P_o$),
+abbassarlo genera falsi negativi (idem).
+
+\textbf{AUC e Kappa non si contraddicono.} RF ottiene AUC $= 0{,}94$ --- vicino al
+perfetto --- ma Kappa $= 0{,}58$. Le due metriche misurano aspetti diversi: AUC valuta
+la qualità del \textit{ranking} (threshold-free), mentre Kappa misura la qualità delle
+predizioni binarie alla soglia fissa di default ($0{,}5$ in Weka). Con il 9\% di imbalance
+la soglia ottimale di classificazione è $\approx 0{,}09$, non $0{,}5$. Il modello sa
+discriminare bene (AUC alto), ma la predizione binaria a soglia fissa penalizza Kappa
+indipendentemente dalla qualità discriminatoria.
+
+\textbf{Soffitto delle feature statiche.} LOC, churn e commit-count sono correlati ai
+bug ma non causalmente collegati: esiste rumore irriducibile che nessun classificatore
+può eliminare, ponendo un ceiling empirico sul Kappa raggiungibile con queste feature.
+
+\textbf{Contesto della letteratura.} Hall et al.\ (2012) riportano Kappa tipico
+$0{,}2$--$0{,}5$ su 208 studi di defect prediction; Lessmann et al.\ (2008) mostrano che
+RF raramente supera $0{,}55$--$0{,}60$ su 10 benchmark. Il valore $0{,}58$--$0{,}59$ di
+RF in questo run è nella \textbf{fascia alta della letteratura}.
+
+\subsubsection{Effetto del balancing: trade-off Recall/Kappa}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{RF} & \textbf{Precision} & \textbf{Recall} & \textbf{Kappa} \\
+\midrule
+None          & 0,73 & 0,52 & \textbf{0,58} \\
+Undersampling & 0,31 & 0,86 & \textbf{0,37} \\
+Oversampling  & 0,61 & 0,66 & \textbf{0,59} \\
+\bottomrule
+\end{tabular}
+\caption{Effetto del balancing su RandomForest: trade-off Precision/Recall/Kappa.}
+\end{table}
+
+Undersampling triplica il Recall di RF ($0{,}52 \to 0{,}86$) ma fa crollare il Kappa
+($0{,}58 \to 0{,}37$). Lo stesso pattern si osserva su IBk ($0{,}47 \to 0{,}30$).
+Undersampling bilancia il training a 50/50, spingendo il classificatore a prevedere
+``buggy'' molto più spesso: i falsi negativi calano (Recall alto) ma i falsi positivi
+esplodono, facendo crollare la Precision da $0{,}73$ a $0{,}31$ (2 predizioni ``buggy''
+su 3 sono errate). Kappa penalizza questa tendenza a sovra-predire la classe positiva
+perché $P_o$ cala per via dei numerosi FP.
+
+Oversampling ottiene il miglior bilanciamento complessivo per RF: Precision $0{,}61$,
+Recall $0{,}66$, Kappa $0{,}59$. Mantiene un buon Recall senza far esplodere i falsi
+positivi, in quanto le istanze minoritarie vengono ricampionate (non si gettano via dati).
+
+\textbf{Interpretazione pratica:} se il costo di un bug sfuggito è altissimo (es.\
+sicurezza), Undersampling con alto Recall è preferibile. Se si vuole un bilancio
+complessivo, Oversampling su RF è la scelta migliore. Kappa espone una verità che il solo
+Recall nasconde: il modello con Undersampling è meno affidabile complessivamente, anche
+se cattura più bug.
+
+\subsubsection{AUC di RandomForest stabile al bilanciamento}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Classificatore} & \textbf{AUC (None)} & \textbf{AUC (Under)} & \textbf{AUC (Over)} \\
+\midrule
+RandomForest & \textbf{0,94} & 0,91 & 0,94 \\
+NaiveBayes   & 0,79          & 0,76 & 0,78 \\
+IBk          & 0,75          & 0,79 & 0,77 \\
+\bottomrule
+\end{tabular}
+\caption{AUC per classificatore e strategia di balancing.}
+\end{table}
+
+Per RF il bilanciamento modifica la soglia effettiva ma non la qualità del ranking: AUC
+rimane $0{,}94$ con None e Oversampling, scende leggermente a $0{,}91$ con Undersampling
+(per la riduzione dell'82\% del training set). Per IBk l'Undersampling aiuta leggermente
+l'AUC ($0{,}75 \to 0{,}79$): il dataset ridotto ($\approx$2.756 istanze) riduce l'effetto
+di distorsione della maggioranza nella distanza k-NN.
+
+\subsubsection{NaiveBayes insensibile al bilanciamento}
+
+NB guadagna solo $+3$\,pp di Recall con Undersampling ($0{,}29 \to 0{,}32$), contro i
+$+34$\,pp di RF e i $+30$\,pp di IBk. Kappa rimane fisso a $0{,}26$ in tutte e tre le
+strategie di balancing.
+
+La causa è strutturale: il bilanciamento modifica la prior $P(\text{buggy})$ nel training,
+ma non risolve la violazione dell'assunzione di indipendenza condizionale. Le feature
+fortemente correlate (LOC\_Touched, Churn, LOC\_Added) distorcono le likelihood
+$P(\text{feature} \mid \text{buggy})$ indipendentemente dalla distribuzione delle classi.
+La performance di NB è quindi limitata dall'assumption violation più che dall'imbalance:
+SMOTE o FS wrapper difficilmente miglioreranno NB in modo significativo su questo dataset.
+
+\subsubsection{NPofB20: RandomForest eccellente per la prioritizzazione pratica}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Classificatore} & \textbf{NPofB20 (None)} & \textbf{NPofB20 (Under)} &
+\textbf{NPofB20 (Over)} \\
+\midrule
+RandomForest & \textbf{0,88} & 0,80 & 0,87 \\
+NaiveBayes   & 0,54          & 0,53 & 0,54 \\
+IBk          & 0,56          & 0,57 & 0,61 \\
+\bottomrule
+\end{tabular}
+\caption{NPofB20 per classificatore e strategia di balancing. Baseline casuale: $\approx$0,20.}
+\end{table}
+
+RF senza balancing cattura l'\textbf{88\% dei bug nel top 20\% dei file per risk score}:
+un team che ispeziona solo il 20\% dei file più a rischio troverebbe quasi tutti i bug.
+NB e IBk si fermano a $\approx$0,54--0,61: meglio del casuale (baseline $= 0{,}20$) ma
+significativamente inferiori a RF.
+
+La differenza riflette la qualità della calibrazione delle probabilità posterior: RF stima
+meglio $P(\text{buggy} \mid \text{features})$ grazie all'averaging su 100 alberi. IBk con
+$k=1$ restituisce probabilità binarie (0 o 1), degradando la qualità del ranking; NaiveBayes
+tende a polarizzare le probabilità verso gli estremi.
+
+\subsubsection{Analisi delle domande aperte}
+
+Il professore ha posto tre domande analitiche sui risultati:
+
+\begin{enumerate}
+\item Quale classificatore è più accurato degli altri?
+\item Il miglior classificatore cambia in base a dataset, numero di release e metrica?
+\item Qual è il classificatore migliore per una determinata metrica?
+\end{enumerate}
+
+Le domande (1) e (3) sono già rispondibili dal CSV di output attuale, aggregando per
+\texttt{Classifier} e cercando il massimo per ogni colonna metrica. Dai risultati del run
+preliminare: RF domina su AUC e NPofB20; la scelta della strategia di balancing dipende
+dalla metrica prioritaria.
+
+La domanda (2) nella parte relativa al \textbf{dataset} richiede l'esecuzione della
+pipeline su più progetti (BOOKKEEPER, KAFKA): ogni progetto produce il proprio CSV con la
+colonna \texttt{Dataset} valorizzata.
+
+La parte relativa al \textbf{numero di release} richiede invece una modifica
+architetturale: la 10$\times$10 CV non ha una nozione di ``quante release sono state usate
+per il training'' perché i fold sono casuali. Rispondere richiede la \textbf{Walk-Forward
+Validation}, con un training set che cresce release per release e una colonna aggiuntiva
+\texttt{NumTrainingReleases} nel CSV di output. L'implementazione richiederebbe un
+\texttt{WalkForwardSplitter} che partizioni le istanze rispettando l'ordine temporale
+e un \texttt{WalkForwardEvaluatorService} che addestri il classificatore su ogni
+training fold e lo valuti sul fold di test (senza cross-validation). Il numero di righe
+di output sarebbe: 36 combinazioni $\times$ 10 split $=$ 360 righe. L'implementazione è
+ortogonale alla pipeline 10-fold esistente e potrebbe coesistere come modalità alternativa
+producendo un secondo CSV.
+
+\subsubsection{Risultati finali}
+
+% TODO: inserire i risultati del run completo (SMOTE abilitato, wrapper FS abilitati,
+% dataset aggiuntivi BOOKKEEPER/KAFKA). Sostituire questo placeholder con la tabella
+% completa delle 60 combinazioni e le relative analisi comparative.
+
+\medskip
+\noindent\textit{I risultati del run completo sono in attesa di completamento.
+Questa sezione verrà aggiornata al termine dell'esecuzione.}
