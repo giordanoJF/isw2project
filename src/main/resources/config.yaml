@@ -115,5 +115,5 @@ classifier:
   #   algoritmi non ne traggono beneficio. Richiederebbe un cambio di libreria ML.
   parallelism:
     interactive: false     # true = chiede i valori a runtime; false = usa quelli sotto
-    combinations: "50%"    # "auto", numero intero (es. "4") o percentuale (es. "50%")
-    randomForestSlots: "1" # "auto", numero intero (es. "2") o percentuale (es. "25%")
+    combinations: "auto"    # "auto", numero intero (es. "4") o percentuale (es. "50%")
+    randomForestSlots: "auto" # "auto", numero intero (es. "2") o percentuale (es. "25%")

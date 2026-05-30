@@ -65,8 +65,16 @@ public class FeatureSelectionBuilderService {
     private AttributeSelection buildWrapper(boolean searchBackwards) {
         // WrapperSubsetEval evaluates each attribute subset by training a
         // classifier (NaiveBayes) and measuring its performance via inner CV.
+        // AUC is used instead of the default accuracy: with 91% majority class,
+        // ZeroR hits 91% accuracy, which causes backward search to eliminate all
+        // features. AUC(ZeroR)=0.5 so any informative subset scores strictly higher.
         WrapperSubsetEval wrapperEval = new WrapperSubsetEval();
         wrapperEval.setClassifier(new NaiveBayes());
+        try {
+            wrapperEval.setOptions(new String[]{"-E", "AUC"});
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to set WrapperSubsetEval evaluation measure", e);
+        }
 
         // GreedyStepwise cerca il miglior sottoinsieme di attributi in modo incrementale.
         // Se searchBackwards=true: parte da tutti gli attributi e rimuove quelli che peggiorano.

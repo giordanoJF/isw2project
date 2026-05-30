@@ -570,6 +570,32 @@ rendendo l'intera riga del CSV inutilizzabile. Il metodo \texttt{safe(double v)}
 sostituendoli con \texttt{0.0} prima dell'accumulo, garantendo che ogni combinazione
 produca comunque una riga leggibile nel CSV.
 
+\paragraph{Metrica di valutazione nei metodi wrapper: accuracy vs AUC}
+
+\texttt{WrapperSubsetEval} usa per default l'\textbf{accuracy} come metrica interna per
+confrontare i sottoinsiemi candidati durante la ricerca greedy. Su un dataset sbilanciato
+come OpenJPA ($\approx$91\% non-buggy) questo scelta produce un comportamento degenere:
+un modello che predice sempre la classe maggioritaria (ZeroR, zero feature) ottiene il
+91\% di accuracy. \texttt{GreedyStepwise} con ricerca backward parte da tutte le 19
+feature e rimuove iterativamente quella la cui eliminazione non abbassa la metrica
+interna; poiché con accuracy la rimozione di ogni feature tende a non peggiorare il 91\%
+di ZeroR, il processo converge al sottoinsieme vuoto. Il risultato osservato era il
+messaggio Weka \textit{``Cannot build model (only class attribute present in data!)''}
+per tutte le combinazioni BackwardSearch, con fallback automatico su ZeroR e metriche
+degeneri nel CSV di output.
+
+La soluzione consiste nel configurare \texttt{WrapperSubsetEval} con metrica
+\textbf{AUC} (opzione \texttt{-E AUC}). Un classificatore ZeroR ottiene AUC$=0{,}5$
+(potere discriminante nullo), mentre qualsiasi sottoinsieme che contenga almeno una
+feature informativa ottiene AUC${>}0{,}5$. La ricerca greedy non può più convergere
+all'insieme vuoto: eliminare l'ultima feature utile farebbe calare l'AUC in modo
+rilevabile. Questa configurazione è disponibile come opzione nativa di
+\texttt{WrapperSubsetEval} in Weka e non richiede modifiche al codice Weka: si tratta
+di una scelta metodologica, non di un hack. La scelta è coerente con la metrica di
+valutazione primaria adottata per i classificatori in questo studio: AUC è raccomandato
+in letteratura rispetto all'accuracy per la feature selection su dataset sbilanciati,
+per la stessa ragione per cui viene preferito all'accuracy nella valutazione finale.
+
 \paragraph{Soppressione dei warning}
 
 Il progetto sopprime quattro categorie di warning, ognuna per una ragione distinta:

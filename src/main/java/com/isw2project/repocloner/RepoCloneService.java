@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 /**
- * Performs a shallow clone (depth=1) of a remote Git repository using JGit.
+ * Performs a full clone of a remote Git repository using JGit.
  *
  * WHY JGIT INSTEAD OF THE GIT CLI:
  * Invoking `git clone` via ProcessBuilder would require the git command-line tool
@@ -17,12 +17,11 @@ import java.io.File;
  * implementation of the Git protocol (no native binary required), so the clone works
  * on any machine that has a JVM, regardless of whether git is installed.
  *
- * WHY SHALLOW (depth=1):
- * A full clone of OpenJPA downloads the entire commit history (~20 000+ commits).
- * This project only needs the source tree at each tagged release, not the full
- * history - the GitExtractorOrchestrator checks out specific refs by tag name.
- * A shallow clone transfers only the latest snapshot of each branch/tag, reducing
- * download size and clone time significantly.
+ * WHY FULL CLONE (no depth limit):
+ * CommitIndexService and GitLogStatsService scan the entire commit history to build
+ * bug-fix and file-change indexes. A shallow clone exposes only a handful of commits,
+ * causing those services to label nearly all files as buggy (observed: ~60% instead
+ * of the expected ~9% with a complete history). The download is larger but required.
  *
  * No authentication is required: the target repository is public and is accessed
  * over plain HTTPS.
@@ -32,11 +31,10 @@ public class RepoCloneService {
     private static final Logger log = LoggerFactory.getLogger(RepoCloneService.class);
 
     public void clone(String url, File targetDir) throws GitAPIException {
-        log.info("Cloning {} into {} (shallow, depth=1)...", url, targetDir.getPath());
+        log.info("Cloning {} into {} (full clone)...", url, targetDir.getPath());
         try (var _ = Git.cloneRepository()
                 .setURI(url)
                 .setDirectory(targetDir)
-                .setDepth(1)
                 .setCloneAllBranches(false)
                 .setProgressMonitor(new LogProgressMonitor())
                 .call()) {

@@ -265,9 +265,8 @@ del progetto, quindi chi scaricava il codice doveva eseguire il clone a mano.
 seguono il pattern service/orchestrator già usato nel resto del progetto:
 
 \begin{itemize}
-\item \texttt{RepoCloneService}: esegue il clone tramite \textbf{JGit} (libreria Java
-pura, senza dipendenze dal client \texttt{git} installato sul sistema) con
-\texttt{depth=1} (shallow clone) per limitare la dimensione del download.
+\item \texttt{RepoCloneService}: esegue un \textbf{full clone} tramite \textbf{JGit}
+(libreria Java pura, senza dipendenze dal client \texttt{git} installato sul sistema).
 \item \texttt{RepoCloneOrchestrator}: controlla se \texttt{<repoDir>/.git} esiste già;
 se sì, salta il clone; altrimenti delega a \texttt{RepoCloneService}.
 \end{itemize}
@@ -278,6 +277,20 @@ per rendere disponibile il repository localmente, senza eseguire manualmente un 
 riga di comando. Il client \texttt{git} di sistema rimane necessario per la fase di
 estrazione degli snapshot, che usa \texttt{ProcessBuilder} con \texttt{git ls-tree} e
 \texttt{git show}.
+
+\medskip
+\noindent\textbf{Correzione: shallow clone causa un'etichettatura errata della bugginess.}
+La versione iniziale di \texttt{RepoCloneService} eseguiva uno \emph{shallow clone}
+(\texttt{depth=1}), che scarica solo l'ultimo snapshot di ogni branch senza storia dei
+commit. Questo dimezzava il tempo di download ma causava un bug silenzioso nella pipeline:
+\texttt{CommitIndexService} e \texttt{GitLogStatsService} scandiscono l'intera storia dei
+commit per costruire gli indici bug\-fix e file\-change; con uno shallow clone quei
+servizi vedevano meno del 10\% dei commit reali. Il risultato osservato era un tasso di
+bugginess del $\approx$60\% invece dell'atteso $\approx$9\%: quasi tutti i file
+risultavano ``buggy'' semplicemente perché la maggior parte dei commit che li citavano
+era assente dall'indice. La correzione consiste nel passare a un full clone: il download
+è più pesante ($\approx$100\,MB anziché pochi MB) ma i dati estratti rispecchiano
+correttamente la storia reale del progetto.
 
 Dipendenza aggiunta in \texttt{pom.xml}: \texttt{org.eclipse.jgit:org.eclipse.jgit:7.1.0}.
 L'URL del repository è configurabile tramite \texttt{git.cloneUrl} in \texttt{config.yaml}.
