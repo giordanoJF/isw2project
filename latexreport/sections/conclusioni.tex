@@ -12,28 +12,28 @@ massimizzazione della dimensione del dataset.
 
 \subsection{Milestone 2}
 
-Il run preliminare (27 combinazioni, SMOTE e wrapper disabilitati) evidenzia che
-RandomForest domina su tutte le metriche di ranking (AUC $= 0{,}94$, NPofB20 $= 0{,}88$
-senza balancing), confermando le aspettative della letteratura di defect prediction. Le
-sue probabilità ben calibrate --- prodotto dell'averaging su 100 alberi --- lo rendono
-il classificatore più affidabile per la prioritizzazione delle code review su questo dataset.
+Il run completo (60 combinazioni: SMOTE e metodi wrapper abilitati) conferma e
+approfondisce le evidenze del run preliminare. RandomForest domina su AUC ($0{,}94$)
+e NPofB20 ($0{,}88$) grazie alla calibrazione delle probabilità posterior ottenuta
+mediante averaging su 100 alberi. La configurazione \textbf{RF + No FS + SMOTE}
+rappresenta la scelta migliore per uso generale: raggiunge il Kappa massimo ($0{,}61$)
+preservando AUC e NPofB20 massimi, con un equilibrio sostenibile tra Precision ($0{,}63$)
+e Recall ($0{,}66$).
 
-La feature selection con soglia $0{,}0$ si è rivelata un no-op: tutte le 19 feature
-portano informazione sulla bugginess e nessuna viene eliminata dai metodi filter. I metodi
-wrapper potrebbero identificare sottoinsiemi più compatti, ma i tempi di esecuzione ne
-hanno finora impedito l'utilizzo.
+La feature selection con metodi filter è risultata un no-op: tutte le 19 feature portano
+informazione sulla bugginess (InfoGain $> 0$ per ognuna). I metodi wrapper producono
+effetti differenziati: lieve miglioramento per NaiveBayes (BackwardSearch rimuove feature
+correlate che violano l'assunzione di indipendenza), neutralità per RF (che gestisce la
+ridondanza internamente), e risultati misti per IBk (il subset ottimizzato per NaiveBayes
+non corrisponde alla metrica di distanza euclidea del k-NN).
 
-Il trade-off tra Recall e Kappa introdotto dall'Undersampling (Recall RF: $0{,}52 \to
-0{,}86$; Kappa: $0{,}58 \to 0{,}37$) mostra che la scelta della strategia di balancing
-dipende dal contesto applicativo: se il costo di un bug sfuggito è prioritario (es.\
-sicurezza), l'Undersampling è preferibile; se si vuole un bilancio complessivo,
-l'Oversampling è la scelta migliore per RF. NaiveBayes è strutturalmente limitato dalla
-violazione dell'assunzione di indipendenza condizionale: il bilanciamento non ne migliora
-le performance perché il problema non è l'imbalance ma le correlazioni tra feature.
+SMOTE supera Oversampling per RF e IBk generando istanze sintetiche per interpolazione,
+producendo una rappresentazione più varia della classe minority. NaiveBayes rimane
+insensibile a qualsiasi strategia di balancing perché il suo limite è strutturale:
+la correlazione tra LOC\_Touched, Churn e LOC\_Added distorce le likelihood
+indipendentemente dalla distribuzione delle classi nel training set.
 
-% TODO: completare le conclusioni con i risultati del run finale (SMOTE + wrapper FS +
-% dataset aggiuntivi BOOKKEEPER/KAFKA). Aggiornare questa sezione al termine
-% dell'esecuzione e integrare il confronto tra dataset multipli.
+Il run su dataset aggiuntivi (BOOKKEEPER, KAFKA) non è stato eseguito e resta aperto.
 
 \subsection{Milestone 3}
 

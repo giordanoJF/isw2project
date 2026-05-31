@@ -7,12 +7,12 @@
     decisioni soggettive; documentarle esplicitamente è fondamentale per la riproducibilità.
 
     \item L'utilizzo delle FV come AV in assenza di AV esplicite riduce il ricorso a
-    Proportion, preservando in parte l'informazione originale del ticket, tenendo sempre conto si tratti di un'ipotesi .
+    Proportion, preservando in parte l'informazione originale del ticket, tenendo sempre conto che si tratti di un'ipotesi.
 
     \item I code smell sono shiftati di una release per riflettere la loro natura causale:
     i smell introdotti in una release non impattano quella stessa release, ma le successive.
 
-    \item E' importante non avvicinarsi temporalmente troppo alle release piu recenti del progetto, in quanto possibilmente affette da bug dormienti e/o snoring.
+    \item È importante non avvicinarsi temporalmente troppo alle release più recenti del progetto, in quanto possibilmente affette da bug dormienti e/o snoring.
 \end{itemize}
 
 \subsection{Milestone 2}
@@ -23,17 +23,19 @@
     classificatore più affidabile per la prioritizzazione delle code review.
 
     \item La feature selection con soglia $0{,}0$ è un no-op su OpenJPA: tutte le 19
-    feature portano informazione sulla bugginess. Solo i metodi wrapper potrebbero trovare
-    sottoinsiemi più compatti, a costo di tempi di esecuzione dell'ordine di ore per
-    singola combinazione.
+    feature portano informazione sulla bugginess. I metodi wrapper migliorano NaiveBayes
+    attenuando la violazione dell'indipendenza condizionale, ma sono neutri per
+    RandomForest che gestisce la ridondanza internamente.
 
     \item Il bilanciamento introduce un trade-off irriducibile tra Recall e Kappa:
-    Undersampling massimizza il Recall (cattura più bug) a scapito del Kappa (aumenta i
-    falsi positivi); Oversampling offre il miglior equilibrio complessivo su RF.
+    Undersampling massimizza il Recall (meno bug sfuggiti, ma più falsi allarmi);
+    SMOTE offre il miglior equilibrio complessivo su RF (Kappa $= 0{,}61$, NPofB20 $= 0{,}88$)
+    generando istanze sintetiche per interpolazione invece di duplicare quelle esistenti.
 
     \item NaiveBayes è strutturalmente limitato dalla violazione dell'assunzione di
-    indipendenza condizionale: il bilanciamento non ne migliora le performance perché il
-    bottleneck è la correlazione tra feature, non l'imbalance.
+    indipendenza condizionale: nessuna strategia di balancing né di feature selection
+    ne migliora significativamente le performance perché il bottleneck è la correlazione
+    tra feature (LOC\_Touched, Churn, LOC\_Added), non la distribuzione delle classi.
 
     \item La 10$\times$10 CV è il compromesso standard per dataset con poche release:
     rinuncia alla correttezza temporale (possibile temporal leakage) in favore di una

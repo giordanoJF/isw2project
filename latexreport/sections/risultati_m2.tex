@@ -6,8 +6,8 @@ I risultati riportati in questa sezione si riferiscono a un run preliminare con 
 configurazione default: 3 classificatori $\times$ 3 strategie di feature selection $\times$
 3 strategie di balancing = 27 combinazioni, con SMOTE e metodi wrapper disabilitati.
 
-La feature selection (NONE, InfoGain, Spearman) produce risultati identici alla terza
-cifra decimale per ogni coppia (Classificatore, Balancing): il fenomeno è discusso in
+La feature selection (NONE, InfoGain, Spearman) produce risultati quasi identici per
+ogni coppia (Classificatore, Balancing): il fenomeno è discusso in
 dettaglio nella sezione successiva. Le righe della tabella riportano i valori con
 \textit{No FS} come rappresentativi di tutte e tre le strategie di feature selection.
 
@@ -31,31 +31,45 @@ IBk           & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
 \bottomrule
 \end{tabular}
 \caption{Risultati del run preliminare (No FS; metriche arrotondate a 2 cifre decimali).
-I valori con InfoGain e Spearman sono identici a quelli riportati per ogni riga.}
+I valori con InfoGain e Spearman sono quasi identici a quelli riportati per ogni riga (vedi sezione successiva).}
 \end{table}
 
 \subsubsection{Feature selection come no-op su questo dataset}
 
-Per ogni coppia (Classificatore, Balancing), i valori con No FS, InfoGain e Spearman sono
-identici alla terza cifra decimale. La causa è che \texttt{InfoGainAttributeEval} +
-\texttt{Ranker(threshold=0.0)} mantiene tutti gli attributi con InfoGain $> 0$: le 19
-feature di OpenJPA sono tutte informative rispetto alla classe \texttt{isBuggy}, nessuna
-ha InfoGain esattamente zero. Analogamente, Spearman con soglia 0 mantiene tutto. Il
-modello addestrato è quindi identico al caso No FS.
+Per NaiveBayes e IBk i valori con No FS, InfoGain e Spearman sono identici: NB usa ogni
+attributo in modo indipendente (l'ordine non conta) e IBk normalizza le distanze
+indipendentemente dall'ordine degli attributi. Per RandomForest compaiono differenze di
+al massimo $0{,}01$ al secondo decimale in alcune combinazioni con Oversampling e SMOTE.
+La causa è che \texttt{Ranker} riordina gli attributi per score anche quando li mantiene
+tutti e 19: RF con seed fisso seleziona un sottoinsieme di feature diverso a ogni nodo
+per effetto del diverso ordine, producendo alberi leggermente diversi.
 
-Questo non è un difetto della pipeline ma un risultato valido: \textbf{tutte le feature
-portano informazione} su questo dataset. I metodi wrapper (ForwardSearch, BackwardSearch)
-potrebbero trovare sottoinsiemi più compatti, ma i tempi di esecuzione (1--3 ore per
-singola combinazione) ne hanno finora impedito l'utilizzo. I run futuri con i wrapper
-permetteranno di verificare se esiste un sottoinsieme ottimale che supera il plateau
-attuale.
+La causa di fondo è la stessa per tutti e tre i metodi filter: \texttt{InfoGainAttributeEval}
+e \texttt{SpearmanAttributeEval} con \texttt{Ranker(threshold=0.0)} mantengono tutti gli
+attributi con score $> 0$. Le 19 feature di OpenJPA sono tutte informative rispetto alla
+classe \texttt{isBuggy}: nessuna ha score esattamente zero. Le differenze osservate per RF
+non derivano quindi da una selezione effettiva di feature, ma dall'effetto collaterale del
+reordering.
 
-\subsubsection{Kappa inferiore a 0,6: limite strutturale, non un difetto}
+Questo è un risultato valido: \textbf{tutte le feature portano informazione} su questo
+dataset. I metodi wrapper (ForwardSearch, BackwardSearch) trovano sottoinsiemi più compatti,
+come discusso nelle sezioni seguenti.
+
+\paragraph{Feature selezionate dai metodi wrapper.}
+Il subset di feature selezionato da GreedyStepwise non è stato salvato. All'interno della
+10$\times$10 CV ogni fold esegue una propria ricerca e può selezionare un subset diverso:
+non esiste quindi un unico subset ``definitivo'' da associare alla combinazione. Per
+ottenere un subset rappresentativo sarebbe sufficiente un passo aggiuntivo: addestrare
+\texttt{AttributeSelection} sull'intero training set (fuori dalla CV) e loggare il
+risultato di \texttt{selectedAttributes()}.
+
+\subsubsection{Kappa e il vincolo strutturale dell'imbalance}
 
 Il valore $0{,}6$ è la soglia standard Landis \& Koch (1977) per l'``accordo sostanziale''
-in diagnostica medica. Tutti i valori di questo run sono sotto $0{,}6$ (il massimo è
-RF + Oversampling $= 0{,}59$). Esistono ragioni strutturali che spiegano perché questo
-valore sia un ceiling empirico, non un indicatore di modelli scadenti.
+in diagnostica medica. Nel run preliminare tutti i valori sono sotto $0{,}6$ (il massimo è
+RF + Oversampling $= 0{,}59$); nel run completo RF+SMOTE raggiunge $0{,}61$, appena sopra
+la soglia. Esistono ragioni strutturali che spiegano perché questo valore sia un ceiling
+empirico vicino, non un indicatore di modelli scadenti.
 
 \textbf{Vincolo matematico imposto dall'imbalance.} Con $\approx$9\% di buggy, l'accordo
 atteso per caso è $P_e \approx 0{,}836$. Per ottenere $\kappa = 0{,}6$ servirebbe
@@ -79,8 +93,9 @@ può eliminare, ponendo un ceiling empirico sul Kappa raggiungibile con queste f
 
 \textbf{Contesto della letteratura.} Hall et al.\ (2012) riportano Kappa tipico
 $0{,}2$--$0{,}5$ su 208 studi di defect prediction; Lessmann et al.\ (2008) mostrano che
-RF raramente supera $0{,}55$--$0{,}60$ su 10 benchmark. Il valore $0{,}58$--$0{,}59$ di
-RF in questo run è nella \textbf{fascia alta della letteratura}.
+RF raramente supera $0{,}55$--$0{,}60$ su 10 benchmark. Il valore $0{,}61$ di RF+SMOTE
+nel run completo è nella \textbf{fascia alta della letteratura}, confermato dal fatto che
+senza bilanciamento si attesterebbe a $0{,}58$--$0{,}59$.
 
 \subsubsection{Effetto del balancing: trade-off Recall/Kappa}
 
@@ -191,10 +206,10 @@ Il professore ha posto tre domande analitiche sui risultati:
 \item Qual è il classificatore migliore per una determinata metrica?
 \end{enumerate}
 
-Le domande (1) e (3) sono già rispondibili dal CSV di output attuale, aggregando per
+Le domande (1) e (3) sono rispondibili dal CSV di output, aggregando per
 \texttt{Classifier} e cercando il massimo per ogni colonna metrica. Dai risultati del run
-preliminare: RF domina su AUC e NPofB20; la scelta della strategia di balancing dipende
-dalla metrica prioritaria.
+completo: RF domina su AUC e NPofB20; la scelta della strategia di balancing dipende
+dalla metrica prioritaria (vedi sezione \ref{sec:best-clf}).
 
 La domanda (2) nella parte relativa al \textbf{dataset} richiede l'esecuzione della
 pipeline su più progetti (BOOKKEEPER, KAFKA): ogni progetto produce il proprio CSV con la
@@ -212,12 +227,319 @@ di output sarebbe: 36 combinazioni $\times$ 10 split $=$ 360 righe. L'implementa
 ortogonale alla pipeline 10-fold esistente e potrebbe coesistere come modalità alternativa
 producendo un secondo CSV.
 
-\subsubsection{Risultati finali}
+\subsubsection{Risultati finali: 60 combinazioni}
 
-% TODO: inserire i risultati del run completo (SMOTE abilitato, wrapper FS abilitati,
-% dataset aggiuntivi BOOKKEEPER/KAFKA). Sostituire questo placeholder con la tabella
-% completa delle 60 combinazioni e le relative analisi comparative.
+Il run completo con SMOTE e metodi wrapper abilitati ha prodotto 60 combinazioni
+(3 classificatori $\times$ 5 strategie di FS $\times$ 4 strategie di balancing).
+Dataset aggiuntivi (BOOKKEEPER, KAFKA) non sono stati inclusi in questo run.
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{FS} & \textbf{Balancing} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+No             & No            & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
+No             & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+No             & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
+No             & SMOTE         & 0,63 & 0,66 & 0,94 & \textbf{0,61} & 0,88 \\
+InfoGain       & No            & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
+InfoGain       & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+InfoGain       & Oversampling  & 0,60 & 0,66 & 0,94 & 0,59 & 0,87 \\
+InfoGain       & SMOTE         & 0,63 & 0,67 & 0,94 & \textbf{0,61} & 0,88 \\
+Spearman       & No            & 0,72 & 0,53 & 0,94 & 0,58 & 0,88 \\
+Spearman       & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+Spearman       & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
+Spearman       & SMOTE         & 0,63 & 0,67 & 0,94 & \textbf{0,61} & 0,88 \\
+ForwardSearch  & No            & 0,72 & 0,53 & 0,94 & 0,58 & 0,88 \\
+ForwardSearch  & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+ForwardSearch  & Oversampling  & 0,58 & 0,67 & 0,93 & 0,58 & 0,86 \\
+ForwardSearch  & SMOTE         & 0,57 & 0,66 & 0,93 & 0,57 & 0,85 \\
+BackwardSearch & No            & 0,72 & 0,52 & 0,94 & 0,57 & 0,88 \\
+BackwardSearch & Undersampling & 0,31 & 0,87 & 0,91 & 0,37 & 0,80 \\
+BackwardSearch & Oversampling  & 0,59 & 0,67 & 0,93 & 0,59 & 0,86 \\
+BackwardSearch & SMOTE         & 0,62 & 0,62 & 0,94 & 0,58 & 0,87 \\
+\bottomrule
+\end{tabular}
+\caption{RandomForest -- risultati completi (20 combinazioni). Kappa massimo in grassetto.}
+\label{tab:rf-full}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{FS} & \textbf{Balancing} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+No             & No            & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+No             & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+No             & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+No             & SMOTE         & 0,34 & 0,33 & 0,78 & 0,27 & 0,55 \\
+InfoGain       & No            & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+InfoGain       & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+InfoGain       & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+InfoGain       & SMOTE         & 0,34 & 0,33 & 0,78 & 0,27 & 0,55 \\
+Spearman       & No            & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+Spearman       & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+Spearman       & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+Spearman       & SMOTE         & 0,34 & 0,33 & 0,78 & 0,27 & 0,55 \\
+ForwardSearch  & No            & 0,36 & 0,29 & \textbf{0,80} & 0,27 & 0,56 \\
+ForwardSearch  & Undersampling & 0,31 & 0,40 & 0,79 & 0,28 & 0,56 \\
+ForwardSearch  & Oversampling  & 0,32 & 0,40 & 0,79 & 0,28 & 0,56 \\
+ForwardSearch  & SMOTE         & 0,35 & 0,35 & 0,77 & \textbf{0,29} & 0,57 \\
+BackwardSearch & No            & 0,39 & 0,28 & \textbf{0,80} & 0,27 & 0,56 \\
+BackwardSearch & Undersampling & 0,32 & 0,38 & 0,78 & 0,28 & 0,56 \\
+BackwardSearch & Oversampling  & 0,33 & 0,37 & \textbf{0,80} & 0,28 & 0,56 \\
+BackwardSearch & SMOTE         & 0,34 & 0,35 & 0,79 & 0,28 & 0,57 \\
+\bottomrule
+\end{tabular}
+\caption{NaiveBayes -- risultati completi (20 combinazioni). AUC e Kappa massimi in grassetto.}
+\label{tab:nb-full}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{FS} & \textbf{Balancing} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+No             & No            & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+No             & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+No             & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+No             & SMOTE         & 0,46 & 0,60 & 0,78 & 0,46 & 0,64 \\
+InfoGain       & No            & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+InfoGain       & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+InfoGain       & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+InfoGain       & SMOTE         & 0,46 & 0,60 & 0,78 & 0,46 & 0,64 \\
+Spearman       & No            & 0,53 & 0,51 & 0,75 & \textbf{0,47} & 0,56 \\
+Spearman       & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+Spearman       & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+Spearman       & SMOTE         & 0,46 & 0,60 & 0,78 & 0,46 & 0,64 \\
+ForwardSearch  & No            & 0,51 & 0,48 & 0,75 & 0,45 & 0,54 \\
+ForwardSearch  & Undersampling & 0,26 & 0,80 & 0,79 & 0,29 & 0,56 \\
+ForwardSearch  & Oversampling  & 0,44 & 0,55 & 0,76 & 0,43 & 0,59 \\
+ForwardSearch  & SMOTE         & 0,38 & 0,62 & \textbf{0,80} & 0,40 & \textbf{0,64} \\
+BackwardSearch & No            & 0,50 & 0,48 & 0,75 & 0,44 & 0,53 \\
+BackwardSearch & Undersampling & 0,26 & 0,79 & 0,79 & 0,29 & 0,56 \\
+BackwardSearch & Oversampling  & 0,43 & 0,55 & 0,76 & 0,42 & 0,58 \\
+BackwardSearch & SMOTE         & 0,40 & 0,61 & 0,79 & 0,42 & 0,61 \\
+\bottomrule
+\end{tabular}
+\caption{IBk -- risultati completi (20 combinazioni). AUC e NPofB20 massimi in grassetto.}
+\label{tab:ibk-full}
+\end{table}
+
+\paragraph{Matrice di confusione: il filo diretto tra configurazione e metriche.}
+
+Ogni riga nelle tabelle è il prodotto di un modello che, di fronte a ogni snapshot, emette
+una predizione binaria. Le quattro possibili combinazioni tra predizione e realtà formano
+la matrice di confusione:
+
+\begin{itemize}
+\item \textbf{TP} (True Positive): predetto buggy, effettivamente buggy. Un bug segnalato
+      che il revisore troverà davvero.
+\item \textbf{FP} (False Positive): predetto buggy, effettivamente clean. Un falso allarme:
+      il revisore ispeziona un file corretto, sprecando tempo.
+\item \textbf{FN} (False Negative): predetto clean, effettivamente buggy. Un bug non
+      segnalato, sfuggito al processo di revisione.
+\item \textbf{TN} (True Negative): predetto clean, effettivamente clean. Una decisione
+      silenziosa e corretta.
+\end{itemize}
+
+Le metriche di classificazione sono funzioni dirette di queste quattro quantità:
+
+\[
+\text{Precision} = \frac{TP}{TP+FP}, \quad
+\text{Recall} = \frac{TP}{TP+FN}, \quad
+\kappa = \frac{P_o - P_e}{1 - P_e}
+\]
+
+dove $P_o = (TP+TN)/(N)$ è l'accuratezza osservata e $P_e$ l'accuratezza attesa per
+caso. AUC e NPofB20 non usano una soglia binaria fissa: AUC integra Precision e Recall
+su tutte le soglie possibili; NPofB20 ordina gli snapshot per probabilità predetta e
+conta quanti bug cadono nel top-20\% di quella lista.
 
 \medskip
-\noindent\textit{I risultati del run completo sono in attesa di completamento.
-Questa sezione verrà aggiornata al termine dell'esecuzione.}
+
+\textit{Nota metodologica}: la pipeline salva solo le cinque metriche aggregate nel CSV;
+la confusion matrix non è un output diretto. I valori di TP, FP, FN, TN riportati di
+seguito sono \textbf{stime derivate} algebricamente da Precision e Recall (arrotondati a
+2 cifre decimali nel CSV) e dal numero totale di buggy nel dataset:
+$TP = \text{Recall} \times 1{.}378$, $FP = TP / \text{Precision} - TP$.
+L'errore introdotto dall'arrotondamento è dell'ordine di $\pm$30 istanze.
+Aggiungere il log della confusion matrix richiederebbe una chiamata a
+\texttt{eval.confusionMatrix()} nel \texttt{ClassifierEvaluatorService}.
+
+\medskip
+
+Un esempio concreto sugli 15.338 snapshot del dataset (1.378 buggy, 13.960 clean):
+
+\begin{itemize}
+\item RF senza balancing (Precision $= 0{,}73$, Recall $= 0{,}52$): il modello rileva
+      $\approx$716 bug (TP) e ne manca $\approx$662 (FN). Delle istanze classificate
+      come buggy, il 73\% sono realmente tali (pochi FP). Kappa $= 0{,}58$: la
+      correzione per il caso lascia un accordo sostanziale.
+
+\item RF con Undersampling (Precision $= 0{,}31$, Recall $= 0{,}86$): il modello
+      rileva $\approx$1.185 bug (TP), ne manca solo $\approx$193 (FN). Ma i FP
+      esplodono a $\approx$2.600: su ogni 100 predizioni ``buggy'', 69 sono falsi
+      allarmi. I TN calano da $\approx$13.700 a $\approx$11.400. $P_o$ scende
+      dall'$\approx$94\% all'$\approx$82\%, e Kappa crolla a $0{,}37$.
+\end{itemize}
+
+Il confronto mostra che Undersampling non peggiora il modello in assoluto: migliora
+drasticamente il Recall (meno FN) al costo di un crollo della Precision (più FP).
+La scelta dipende dal contesto: nei sistemi critici dove un bug sfuggito ha costi alti,
+il Recall elevato vale la pena; per un team con risorse limitate, i falsi allarmi
+esauriscono la capacità di revisione rendendo il modello controproducente.
+
+\paragraph{SMOTE vs Oversampling: interpolazione contro duplicazione.}
+
+Oversampling (Resample) bilancia il training set ricampionando con rimpiazzo le istanze
+minority esistenti: il modello vede più volte le stesse 1.378 istanze buggy reali.
+SMOTE genera invece istanze sintetiche per interpolazione tra i $k$ vicini più prossimi
+di ogni istanza minority: per ogni buggy class instance vengono creati nuovi punti nel
+feature space che non corrispondono a nessun file reale ma sono ``plausibili'' dati i
+vicini. Questo produce una rappresentazione più densa e varia della regione buggy.
+
+I risultati mostrano che SMOTE supera Oversampling per RF e IBk, ma non per NaiveBayes:
+
+\begin{itemize}
+\item \textbf{RF}: RF+No+SMOTE ottiene Kappa $= 0{,}61$ contro $0{,}59$ di
+      RF+No+Oversampling, a parità di AUC ($0{,}94$) e NPofB20 ($0{,}88$). La Recall
+      sale da $0{,}52$ (no balancing) a $0{,}66$ senza far crollare la Precision
+      ($0{,}63$ vs $0{,}73$): SMOTE riduce i FN in modo più bilanciato rispetto
+      alla duplicazione semplice.
+
+\item \textbf{IBk}: IBk+No+SMOTE raggiunge NPofB20 $= 0{,}64$ e AUC $= 0{,}78$, contro
+      $0{,}61$ e $0{,}77$ di Oversampling. IBk con $k=1$ è sensibile alla densità locale:
+      istanze sintetiche SMOTE modificano i confini di Voronoi e avvicinano i centroidi
+      della classe minority, permettendo a più punti clean di avere un vicino buggy.
+
+\item \textbf{NaiveBayes}: il guadagno è trascurabile (Kappa da $0{,}26$ a $0{,}27$,
+      Recall da $0{,}32$ a $0{,}33$). La causa è strutturale: NB soffre della
+      correlazione tra feature (LOC\_Touched, Churn, LOC\_Added) che distorce le
+      likelihood $P(\text{feature} \mid \text{class})$ indipendentemente dal numero di
+      istanze minority. Aggiungere istanze synthetic non risolve il problema alla radice.
+\end{itemize}
+
+\paragraph{Feature selection wrapper: ForwardSearch e BackwardSearch.}
+
+I metodi filter (InfoGain, Spearman) con soglia $0{,}0$ mantengono tutte e 19 le feature
+e producono risultati quasi identici al caso No FS. I metodi wrapper selezionano invece
+un sottoinsieme tramite una ricerca greedy che usa NaiveBayes come classificatore interno:
+ForwardSearch parte da zero feature e aggiunge, BackwardSearch parte da tutte e rimuove.
+
+L'effetto dipende dal classificatore esterno:
+
+\begin{itemize}
+\item \textbf{Per NaiveBayes}: entrambi i wrapper producono un modesto miglioramento.
+      NB+BackwardSearch+No ottiene Precision $= 0{,}39$ (da $0{,}35$) e AUC $= 0{,}80$
+      (da $0{,}79$). BackwardSearch rimuove le feature più correlate tra loro
+      (LOC\_Touched, Churn, LOC\_Added sono varianti della stessa informazione di
+      ``attività sul file''), attenuando la violazione dell'assunzione di indipendenza
+      condizionale che è il limite strutturale di NB. Il guadagno è contenuto perché
+      le feature correlate rimangono parzialmente nel subset ottimale per AUC.
+
+\item \textbf{Per RandomForest}: l'effetto è neutro o leggermente negativo con balancing.
+      RF+ForwardSearch+No (Kappa $= 0{,}58$, NPofB20 $= 0{,}88$) è identico a
+      RF+No+No. La ragione è che RF gestisce internamente la ridondanza tramite la
+      selezione casuale di $m = \lfloor\sqrt{19}\rfloor = 4$ feature a ogni nodo di
+      ogni albero: le feature correlate non si accumulano nel singolo albero. Il subset
+      selezionato dalla ricerca wrapper --- ottimizzato per NaiveBayes, non per RF ---
+      non apporta benefici aggiuntivi e in alcune configurazioni (Oversampling, SMOTE)
+      riduce leggermente le prestazioni perché esclude feature che RF userebbe utilmente.
+
+\item \textbf{Per IBk}: ForwardSearch+SMOTE raggiunge AUC $= 0{,}80$ (il massimo per
+      IBk), ma la Precision scende a $0{,}38$. I FP aumentano perché il subset
+      selezionato per NaiveBayes non è ottimale per la metrica di distanza euclidea di
+      IBk: alcune feature rimosse erano discriminative per il k-NN. Il NPofB20 rimane
+      $0{,}64$, uguale a IBk+No+SMOTE: la qualità del ranking non peggiora anche se la
+      soglia binaria produce più falsi allarmi.
+\end{itemize}
+
+\paragraph{Perché RandomForest domina su AUC e NPofB20.}
+
+AUC e NPofB20 misurano la qualità del \emph{ranking} (non della soglia binaria).
+RandomForest produce stime di probabilità come media di 100 voti binari degli alberi:
+$\hat{P}(\text{buggy} \mid x) = k/100$ dove $k$ è il numero di alberi che votano
+``buggy''. Questo averaging riduce la varianza e produce probabilità ben calibrate
+nell'intervallo continuo $[0{,}01, 0{,}99]$: ogni file riceve un risk score granulare
+che riflette il suo reale posizionamento nella distribuzione degli snapshot.
+
+IBk con $k=1$ assegna probabilità binarie: ogni test instance riceve $1{,}0$ se il
+vicino più prossimo è buggy, $0{,}0$ altrimenti. Il ranking collassa su due livelli
+invece di uno continuo, degradando drasticamente NPofB20 ($0{,}56$ vs $0{,}88$ di RF).
+NaiveBayes calcola probabilità posterior ma la correlazione tra feature produce
+stime estreme (molto vicine a 0 o 1), riducendo la granularità del ranking e limitando
+NPofB20 a $\approx$0,54--0,57.
+
+Senza balancing, RF+No ottiene NPofB20 $= 0{,}88$: ispezionando il 20\% dei file
+più a rischio secondo RF si trovano l'88\% dei bug. Un tester con risorse limitate
+ottiene un ritorno enorme da questo ordinamento. IBk e NaiveBayes, con NPofB20
+$\approx 0{,}54$--$0{,}57$, sono migliori del casuale ($0{,}20$) ma molto lontani
+da RF.
+
+\subsubsection{Il classificatore migliore}
+\label{sec:best-clf}
+
+La scelta del classificatore migliore dipende dalla metrica che si considera prioritaria.
+La tabella seguente sintetizza i valori massimi per ogni metrica:
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lllccccc@{}}
+\toprule
+\textbf{Clf} & \textbf{FS} & \textbf{Bal.} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+RF  & No            & No            & \textbf{0,73} & 0,52 & \textbf{0,94} & 0,58 & \textbf{0,88} \\
+RF  & No            & Undersampling & 0,31          & \textbf{0,87} & 0,91 & 0,37 & 0,80 \\
+RF  & No            & SMOTE         & 0,63          & 0,66 & \textbf{0,94} & \textbf{0,61} & \textbf{0,88} \\
+NB  & BackwardSearch & No           & 0,39          & 0,28 & 0,80 & 0,27 & 0,56 \\
+IBk & No            & No            & 0,53          & 0,51 & 0,75 & 0,47 & 0,56 \\
+\bottomrule
+\end{tabular}
+\caption{Configurazioni ottimali per ogni metrica (valori massimi in grassetto).}
+\label{tab:best}
+\end{table}
+
+\textbf{Raccomandazione: RandomForest con No FS e SMOTE.}
+
+RF+No+SMOTE è la scelta migliore per un utilizzo generale, per le seguenti ragioni:
+
+\begin{enumerate}
+\item \textbf{Kappa massimo ($\kappa = 0{,}61$)}: è la configurazione con il miglior
+      equilibrio complessivo tra TP, FP, FN e TN. Il Kappa tiene conto dell'imbalance
+      ($\approx$9\% buggy) e misura quanto il modello supera la predizione per caso:
+      $\kappa = 0{,}61$ è nella fascia alta della letteratura di defect prediction.
+
+\item \textbf{AUC e NPofB20 massimi ($0{,}94$ e $0{,}88$)}: identici alla versione
+      senza balancing, ma con una Recall più alta ($0{,}66$ vs $0{,}52$). Il modello
+      mantiene la qualità del ranking e cattura più bug.
+
+\item \textbf{Recall accettabile ($0{,}66$) senza collasso della Precision ($0{,}63$)}:
+      rispetto a Undersampling (Recall $= 0{,}87$, Precision $= 0{,}31$), SMOTE offre
+      un bilancio più sostenibile: su 100 file segnalati come buggy, 63 lo sono davvero.
+      Un tasso di falsi allarmi del 37\% è gestibile per un team di code review;
+      il 69\% di Undersampling satura la capacità di revisione con lavoro inutile.
+
+\item \textbf{SMOTE non riduce i dati}: a differenza di Undersampling, che scarta
+      l'82\% delle istanze majority portando il training set da 13.804 a $\approx$2.400
+      istanze per fold, SMOTE aggiunge istanze sintetiche. RF conserva l'intera
+      informazione del training set e la diversità delle istanze majority.
+\end{enumerate}
+
+Se il contesto richiede massimizzare il Recall (sistemi critici per la sicurezza),
+RF+Undersampling con Recall $= 0{,}87$ è preferibile, a condizione di accettare che
+due terzi delle segnalazioni siano falsi allarmi. Se il contesto è la sola
+prioritizzazione delle code review (ispezione budget-constrained del top-20\% dei file),
+RF+No+No è equivalente a RF+SMOTE su AUC e NPofB20 con Precision più alta, e rappresenta
+la configurazione più semplice da giustificare e riprodurre.
