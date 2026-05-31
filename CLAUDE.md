@@ -365,9 +365,9 @@ RF=757s, IBk=227s, NB=6s (NONE FS, NONE bal). UNDERSAMPLING ×0.20, OVERSAMPLING
 | Release saltate (no tag Git) | 3 (`0.9.0`, `2.0.0-M1`, `2.0.0-M2`) |
 | Snapshot totali | 15.338 |
 | Snapshot buggy | 1.378 (8,98%) |
-| Commit totali | ~7.666 |
-| Commit con chiave issue | ~5.286 (68,95%) |
-| Issue unici indicizzati | 1.815 |
+| Commit totali | 7.834 |
+| Commit con chiave issue | 5.443 (69,48%) |
+| Issue unici indicizzati | 1.817 |
 
 **Timing pipeline M1 completa:**
 
