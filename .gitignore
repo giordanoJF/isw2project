@@ -39,7 +39,7 @@ build/
 .DS_Store
 
 
-output/
+output/milestone1/6_extracted_source/
 idea/
 /.idea/
 /.idea/*
