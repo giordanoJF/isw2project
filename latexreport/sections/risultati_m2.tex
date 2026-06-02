@@ -63,6 +63,15 @@ ottenere un subset rappresentativo sarebbe sufficiente un passo aggiuntivo: adde
 \texttt{AttributeSelection} sull'intero training set (fuori dalla CV) e loggare il
 risultato di \texttt{selectedAttributes()}.
 
+\subsubsection{Perché l'accuracy non è stata inclusa}
+
+L'accuracy (percentuale di predizioni corrette sul totale) non è stata inclusa tra le
+metriche perché è una misura fuorviante in presenza di class imbalance. Con il 9\% di
+istanze buggy, un classificatore banale che predice sempre ``clean'' ottiene circa il
+91\% di accuracy senza aver appreso nulla. Metriche come Precision, Recall, Kappa e AUC
+sono invece insensibili a questo effetto: valutano la capacità del modello di discriminare
+la classe minoritaria, che è l'obiettivo reale della defect prediction.
+
 \subsubsection{Kappa e il vincolo strutturale dell'imbalance}
 
 Il valore $0{,}6$ è la soglia standard Landis \& Koch (1977) per l'``accordo sostanziale''

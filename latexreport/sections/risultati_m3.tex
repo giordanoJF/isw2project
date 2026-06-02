@@ -1,4 +1,148 @@
-\subsection{Milestone 3 -- Analisi dell'impatto dei code smell}
+\subsection{Milestone 3 -- Risultati dell'analisi controfattuale}
 
-% TODO: riportare quante classi buggy avrebbero potuto essere prevenute
-% in assenza di code smell, con riferimento ai dati del dataset.
+\subsubsection{Tabella dei dataset}
+
+La Tabella~\ref{tab:whatif_datasets} riporta, per ciascun dataset, il numero di istanze,
+i bug reali (ground truth da M1) e i bug predetti da BClassifierA.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Dataset} & \textbf{Istanze} & \textbf{Actual Buggy} & \textbf{Predicted Buggy} \\
+\midrule
+A  (intero)              & 15.338 & 1.378 & 1.384 \\
+B+ (NSmells $> 0$)       & 12.792 & 1.119 & 1.125 \\
+B  (B+ con NSmells $= 0$) & 12.792 & 1.119 & 1.137 \\
+C  (NSmells $= 0$)       &  2.546 &   259 &   259 \\
+\bottomrule
+\end{tabular}
+\caption{Riepilogo dei dataset e predizioni di BClassifierA (RF + No FS + SMOTE addestrato su A).}
+\label{tab:whatif_datasets}
+\end{table}
+
+I totali sono internamente consistenti: B+ + C = 12.792 + 2.546 = 15.338 = A, e B ha lo
+stesso numero di istanze di B+ per costruzione.
+
+\subsubsection{Metriche di prevenzione}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Metrica} & \textbf{Valore} \\
+\midrule
+Prevented\_Total           &  63    \\
+Prevented\_Proportion      &  4,57\% \\
+Prevented\_Of\_Predictable &  5,60\% \\
+\bottomrule
+\end{tabular}
+\caption{Metriche di prevenzione: impatto dell'azzeramento di NSmells sulle predizioni.}
+\label{tab:whatif_prevention}
+\end{table}
+
+Su 1.125 classi predette buggy in B+, solo \textbf{63} (5,60\%) smetterebbero di essere
+predette buggy se i code smell fossero zero. In proporzione sul totale dei bug reali in A,
+la prevenzione è del 4,57\%.
+
+\subsubsection{Un risultato contro-intuitivo: B predice più bug di B+}
+
+Un dato inatteso emerge dal confronto diretto: B ha \textbf{1.137} predizioni buggy contro
+le \textbf{1.125} di B+ ($+12$ netto). L'azzeramento degli smell non riduce le predizioni
+in modo uniforme: 63 istanze passano da BUGGY a CLEAN (prevenute), ma \textbf{75 istanze}
+percorrono la direzione opposta, da CLEAN a BUGGY. L'effetto netto dell'eliminazione degli
+smell è un lieve \textit{aumento} del numero di bug predetti, a conferma del ruolo marginale
+di NSmells nel modello.
+
+\subsubsection{Confronto con il paper di riferimento}
+
+Il paper presentato a lezione (\textit{``What If I Had No Smells?''}, Falessi) riporta una
+riduzione del \textbf{42\%} dei file difettosi predetti passando da B+ a B, contro il
+nostro 5,60\%. La differenza è sostanziale e richiede una spiegazione.
+
+La metodologia è la stessa: A, B+, B, C costruiti con lo stesso criterio, modello addestrato
+su A e applicato ai quattro dataset. Le differenze risiedono nel contesto sperimentale:
+
+\begin{itemize}
+
+  \item \textbf{Strumento di rilevazione smell e composizione dei ruleset.}
+  Il paper usa \textbf{SonarQube} con 1.297 tipi di smell, che include veri smell
+  architetturali (God Class, Long Method, Feature Envy, ecc.). Il presente studio usa
+  \textbf{PMD} con 4 ruleset: \texttt{design}, \texttt{errorprone}, \texttt{bestpractices}
+  e \texttt{codestyle}. I primi tre catturano pattern di qualità strutturale (God Class,
+  Cyclomatic Complexity, pattern error-prone); il quarto --- \texttt{codestyle} ---
+  rileva violazioni di stile puro: naming convention, stile delle parentesi graffe,
+  import superflui. Le violazioni di codestyle crescono \textit{linearmente} con la
+  dimensione del file: un file da 500 righe ha più opportunità di violare una naming
+  convention di uno da 50 righe. Questo introduce una correlazione artificiale tra
+  NSmells e LOC, che a sua volta è correlata con le metriche di processo cumulative
+  (LOC\_touched, NR, Churn). In altri termini, \texttt{codestyle} riduce l'indipendenza
+  di NSmells dalle metriche di processo, penalizzando la sua utilità come feature
+  indipendente nel modello. Al contrario, le violazioni di \texttt{design} (es.\ God
+  Class) non crescono linearmente con la dimensione e conservano un segnale più autonomo.
+
+  \item \textbf{Contributo marginale di NSmells nel modello multivariato.}
+  Nella slide di correlazione del paper, NSmells presenta correlazione quasi nulla con
+  LOC\_touched ($-0{,}01$), NR ($0{,}02$) e NFix ($0{,}02$): nel loro dataset i code smell
+  sono \textit{indipendenti} dalle metriche di processo, e il loro contributo al modello
+  è quindi aggiuntivo rispetto a quello delle altre feature.
+
+  È importante distinguere due concetti diversi. La \textit{correlazione individuale} di
+  NSmells con isBuggy (misurata da InfoGain o Spearman) è positiva e non nulla anche nel
+  presente studio: per questo la feature selection con soglia $= 0$ non elimina NSmells,
+  e il classificatore migliore risulta comunque quello senza FS (FS è un no-op quando
+  tutte le feature hanno InfoGain $> 0$). Il \textit{contributo marginale} di NSmells
+  nel modello --- cioè quanto cambia la predizione se si varia NSmells \textit{tenendo
+  fisse} le altre 18 feature --- è invece quasi zero: RandomForest ha già spiegato la
+  quasi totalità della varianza di isBuggy tramite le metriche di processo; NSmells non
+  aggiunge informazione indipendente. È questo contributo marginale, non la correlazione
+  individuale, che il what-if misura e che risulta marginale.
+
+  \item \textbf{Contesto industriale vs.\ open source.}
+  Il paper usa dati di un'azienda industriale (Keymind): 135 file totali, processo di
+  sviluppo più controllato. Il presente studio usa Apache OpenJPA: 15.338 snapshot, sviluppo
+  open source distribuito ad alto turnover. In contesti industriali disciplinati le metriche
+  di churn sono più basse e gli smell diventano relativamente più informativi; in grandi
+  progetti open source il churn domina la predizione (NFix ha correlazione $0{,}51^{*}$ con
+  la bugginess già nel paper del prof).
+
+  \item \textbf{Sfasamento temporale della metrica.}
+  Il paper misura NSmells \textit{just before the first revision} della finestra di release,
+  cioè allo stato iniziale preciso della release. Il presente studio usa
+  \texttt{Previous\_Release\_Code\_Smells}, ossia i smell misurati sulla release
+  \textit{precedente}: uno sfasamento che può diluire il segnale se il codice è cambiato
+  significativamente tra una release e l'altra.
+
+\end{itemize}
+
+\subsubsection{Possibili miglioramenti della metrica NSmells}
+
+L'analisi evidenzia due interventi che potrebbero avvicinare i risultati a quelli del paper:
+
+\begin{itemize}
+  \item \textbf{Rimozione di \texttt{codestyle.xml} e aggiunta di ruleset più smell-oriented.}
+  Eliminare il ruleset \texttt{codestyle} ridurrebbe il rumore correlato alla dimensione;
+  aggiungere \texttt{performance.xml} e \texttt{security.xml} introdurrebbe violazioni di
+  qualità più indipendenti dalle metriche di processo (pattern di performance e sicurezza non
+  crescono linearmente con il numero di righe). Il risultato sarebbe una metrica NSmells più
+  focalizzata su smell strutturali e meno confusa con lo stile.
+
+  \item \textbf{Sostituzione di PMD con SonarQube.}
+  SonarQube rileva 1.297 tipi di smell, inclusi quelli architetturali (God Class, Feature
+  Envy, Divergent Change, ecc.) che nella letteratura hanno la correlazione più alta con i
+  difetti. Questa sostituzione richiederebbe un refactoring significativo della pipeline
+  (server SonarQube, analisi per release, parsing API) ma sarebbe l'unico intervento capace
+  di colmare strutturalmente il divario con il 42\% riportato nel paper.
+\end{itemize}
+
+Entrambi gli interventi sono stati valutati ma non implementati nel presente studio,
+che mantiene la scelta originale di PMD per coerenza con la pipeline di Milestone 1.
+
+\paragraph{Risposta alle domande dell'assignment.}
+\textit{``BClassifier è accurato?''} Sì: Precision $= 0{,}63$, Recall $= 0{,}66$,
+AUC $= 0{,}94$, Kappa $= 0{,}61$ da M2.
+\textit{``Quante classi buggy avrebbero potuto essere prevenute con zero smell?''}
+63 in totale (4,57\% dei bug reali), pari al 5,60\% dei bug predetti in B+.
+L'impatto è limitato: nel contesto di Apache OpenJPA con metriche PMD, il principale
+driver di bugginess sono le metriche di processo cumulative, non la qualità strutturale
+del codice misurata tramite PMD.

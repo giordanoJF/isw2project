@@ -1,4 +1,57 @@
-\subsection{Milestone 3 -- Analisi dell'impatto dei code smell}
+\subsection{Milestone 3 -- Analisi controfattuale dell'impatto dei code smell}
 
-% TODO: descrivere il dataset utilizzato, come è stato costruito e come è stata
-% investigata la relazione tra code smell e bugginess.
+La Milestone 3 risponde alla domanda: \textit{quante classi buggy avrebbero potuto essere
+prevenute se non avessero avuto code smell?}
+
+\subsubsection{Scelta del classificatore migliore (BClassifier)}
+
+Sulla base dei risultati della Milestone 2, il classificatore migliore per uso generale è
+\textbf{RF + No FS + SMOTE}: raggiunge il Kappa massimo ($0{,}61$) preservando AUC ($0{,}94$)
+e NPofB20 ($0{,}88$) massimi, con un equilibrio sostenibile tra Precision ($0{,}63$) e
+Recall ($0{,}66$). Questo classificatore è denominato BClassifier nell'analisi che segue.
+
+\subsubsection{Costruzione dei dataset}
+
+A partire dal dataset \textbf{A} prodotto dalla Milestone 1
+(15.338 snapshot, 19 metriche, etichetta isBuggy), sono stati costruiti tre dataset
+derivati utilizzando la metrica \texttt{Previous\_Release\_Code\_Smells} (colonna NSmells):
+
+\begin{itemize}
+  \item \textbf{B+}: porzione di A con NSmells $> 0$ (12.792 istanze, 83,4\% del totale).
+  \item \textbf{C}: porzione di A con NSmells $= 0$ (2.546 istanze, 16,6\% del totale).
+  \item \textbf{B}: copia identica di B+ con NSmells forzato a $0$ per ogni istanza
+        (stesso numero di righe di B+, tutte le altre 18 feature invariate). B rappresenta
+        il controfattuale: ``com'è il dataset B+ se le classi avessero avuto zero smell
+        nella release precedente?''
+\end{itemize}
+
+La costruzione è implementata in \texttt{WhatIfDatasetService}: il CSV viene caricato con
+\texttt{CSVLoader} di Weka, le istanze vengono partite in base al valore di NSmells, e B
+viene ottenuto per copia di B+ seguita dall'azzeramento dell'attributo. Colonne non-feature
+(\texttt{java\_class\_path}, \texttt{release}) vengono rimosse prima della predizione;
+\texttt{isBuggy} è settato come attributo di classe.
+
+\subsubsection{Training e predizione}
+
+BClassifier viene addestrato sull'intero dataset A tramite \texttt{buildClassifier(A)}
+(training completo, senza cross-validation). Il filtro SMOTE viene applicato
+internamente da \texttt{FilteredClassifier} durante il training e mai sul test set.
+
+Il classificatore addestrato (denominato BClassifierA) viene poi usato per predire le
+etichette di ogni istanza in A, B+, B e C tramite \texttt{classifyInstance}. Il confronto
+instance-by-instance tra le predizioni su B+ e B (che hanno le stesse istanze nello stesso
+ordine) consente di isolare l'effetto dell'azzeramento degli smell.
+
+\subsubsection{Metriche di prevenzione}
+
+Un'istanza è considerata \textit{prevenuta} se BClassifierA la predice come BUGGY su B+ e
+come CLEAN su B: il modello cambia giudizio unicamente a causa dell'azzeramento di NSmells.
+
+Tre metriche quantificano la prevenzione:
+\begin{itemize}
+  \item \textbf{Prevented\_Total}: numero assoluto di istanze prevenute.
+  \item \textbf{Prevented\_Proportion}: Prevented\_Total / Actual\_Buggy\_in\_A — quota
+        dei bug reali che sarebbero stati evitati.
+  \item \textbf{Prevented\_Of\_Predictable}: Prevented\_Total / Predicted\_Buggy\_in\_B+
+        — quota dei bug predetti in B+ che sarebbero stati salvati dall'assenza di smell.
+\end{itemize}

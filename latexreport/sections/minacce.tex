@@ -60,8 +60,39 @@ greedy diventerebbe meno affidabile nel trovare l'ottimo globale.
 
 \subsection{Milestone 3}
 
-% TODO: descrivere le assunzioni alla base dell'analisi dell'impatto dei code smell
-% e i possibili limiti della metodologia adottata.
+\paragraph{Training bias su A}
+BClassifierA è addestrato sull'intero dataset A e poi usato per predire A stesso.
+Le predizioni su A non sono quindi ``out-of-sample'' e tendono a essere ottimistiche.
+Le predizioni su B+, B e C sono invece genuine (A è il training set, B+/B/C sono
+applicazioni del modello a dati che non ha mai visto come test).
+
+\paragraph{Indipendenza tra NSmells e le altre feature}
+L'analisi controfattuale assume implicitamente che sia possibile azzerare NSmells
+mantenendo invariate le altre 18 feature. Nella realtà questo non è realizzabile:
+un file privo di smell ha tipicamente anche meno LOC, meno storia di modifica e
+maggiore semplicità strutturale. Azzerare solo NSmells nel dataset costruisce un
+controfattuale che non corrisponde a nessuna distribuzione reale di classi Java.
+
+\paragraph{Composizione dei ruleset PMD e correlazione con LOC}
+La metrica \texttt{Previous\_Release\_Code\_Smells} aggrega le violazioni di quattro
+ruleset PMD: \texttt{design}, \texttt{errorprone}, \texttt{bestpractices} e
+\texttt{codestyle}. Il ruleset \texttt{codestyle} rileva violazioni di stile puro
+(naming convention, stile delle parentesi, import superflui) le cui occorrenze crescono
+linearmente con la dimensione del file. Questo introduce una correlazione artificiale
+tra NSmells e LOC, che a sua volta riduce l'indipendenza di NSmells rispetto alle
+metriche di processo cumulative (LOC\_touched, Churn, NR). La conseguenza è che
+RandomForest non ha bisogno di NSmells come feature separata, perché il suo segnale
+è già assorbito dalle metriche di processo. Rimuovere \texttt{codestyle} e aggiungere
+ruleset meno dimensione-dipendenti (\texttt{performance}, \texttt{security}) potrebbe
+ridurre questa correlazione e aumentare il contributo indipendente di NSmells.
+Studi diversi usano metriche di smell diverse (spesso SonarQube con smell architetturali
+quali God Class, Feature Envy, Long Method), il che limita ulteriormente la
+comparabilità dei risultati con la letteratura.
+
+\paragraph{Dipendenza dal classificatore scelto}
+I risultati dell'analisi controfattuale dipendono da quale classificatore viene scelto
+come BClassifier. Un classificatore diverso (es.\ IBk) avrebbe pesi diversi per
+NSmells e potrebbe produrre un numero di istanze prevenute significativamente diverso.
 
 \subsection{Milestone 4}
 

@@ -37,8 +37,18 @@ Il run su dataset aggiuntivi (BOOKKEEPER, KAFKA) non è stato eseguito e resta a
 
 \subsection{Milestone 3}
 
-% TODO: sintetizzare quante classi buggy avrebbero potuto essere prevenute e
-% cosa implica questo risultato.
+L'analisi controfattuale mostra che eliminare i code smell avrebbe un impatto limitato
+sulle predizioni di BClassifierA: solo 63 classi su 1.378 bug reali (4,57\%)
+cambierebbero etichetta da BUGGY a CLEAN. L'effetto netto sull'intero insieme B è
+addirittura un lieve aumento dei bug predetti ($+12$), segno che NSmells gioca un
+ruolo marginale nel modello.
+
+Questo risultato non contraddice la letteratura sull'associazione smell--bug, ma
+evidenzia che in un modello multivariato con 19 feature --- in particolare con metriche
+di processo cumulative come \texttt{LOC\_Touched}, \texttt{Churn} e \texttt{NR} ---
+i code smell non apportano informazione predittiva indipendente.
+Il principale driver di bugginess in Apache OpenJPA è la storia di modifica del codice,
+non la sua qualità strutturale misurata tramite smell.
 
 \subsection{Milestone 4}
 
