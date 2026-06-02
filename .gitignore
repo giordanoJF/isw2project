@@ -40,7 +40,6 @@ build/
 
 
 output/
-*.pdf
 idea/
 /.idea/
 /.idea/*
