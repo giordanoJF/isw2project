@@ -13,6 +13,7 @@ public class AppConfig {
     private GitConfig git;
     private MetricsConfig metrics;
     private ClassifierConfig classifier;
+    private WhatIfConfig whatif;
 
     public CsvConfig getCsv()           { return csv; }
     public void setCsv(CsvConfig csv)   { this.csv = csv; }
@@ -31,4 +32,7 @@ public class AppConfig {
 
     public ClassifierConfig getClassifier()                { return classifier; }
     public void setClassifier(ClassifierConfig classifier) { this.classifier = classifier; }
+
+    public WhatIfConfig getWhatif()                { return whatif; }
+    public void setWhatif(WhatIfConfig whatif)     { this.whatif = whatif; }
 }

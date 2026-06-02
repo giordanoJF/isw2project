@@ -117,3 +117,12 @@ classifier:
     interactive: false     # true = chiede i valori a runtime; false = usa quelli sotto
     combinations: "auto"    # "auto", numero intero (es. "4") o percentuale (es. "50%")
     randomForestSlots: "auto" # "auto", numero intero (es. "2") o percentuale (es. "25%")
+
+whatif:
+  inputCsv: "output/milestone1/5_snapshots/OPENJPA_snapshots.csv"
+  outputDir: "output/milestone3"
+  datasetName: "OPENJPA"
+  bestClassifier: "RANDOM_FOREST"
+  bestFs: "NONE"
+  bestBalancing: "SMOTE"
+  smellsColumn: "Previous_Release_Code_Smells"
