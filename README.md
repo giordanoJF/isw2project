@@ -1,23 +1,36 @@
 # ISW2 Project — Bug Prediction on Apache OpenJPA
 
-A two-milestone study on software defect prediction using machine learning.
+A study on software defect prediction using machine learning, structured in three milestones.
 
-- **Milestone 1** downloads bug tickets from Jira, extracts Java class snapshots from the Git history of [Apache OpenJPA](https://github.com/apache/openjpa), computes process and product metrics, and labels each snapshot as buggy or clean.
-- **Milestone 2** trains and evaluates classifiers (RandomForest, NaiveBayes, IBk) over all combinations of feature selection and class-balancing strategies using 10-times 10-fold cross-validation.
+- **Milestone 1** downloads bug tickets from Jira, clones the [Apache OpenJPA](https://github.com/apache/openjpa) repository, extracts Java class snapshots for each release, computes 19 process and product metrics, and labels each snapshot as buggy or clean.
+- **Milestone 2** trains and evaluates three classifiers (RandomForest, NaiveBayes, IBk) over all combinations of feature selection strategies and class-balancing strategies using 10-times 10-fold cross-validation.
+- **Milestone 3** performs a what-if counterfactual analysis: it trains the best classifier on the full dataset and measures how many buggy classes could have been prevented by having zero code smells. It also includes a Spearman correlation analysis and an ablation study to assess the redundancy of the code smell feature.
 
 ---
 
 ## Requirements
 
-| Dependency | Version | Milestone 1 | Milestone 2 |
-|---|---|---|---|
-| Java | 26 | required | required |
-| git | any | required | not required |
-| Maven | 3.8+ | build only | build only |
+| Dependency | Version | M1 | M2 | M3 |
+|---|---|---|---|---|
+| Java | 26 | required | required | required |
+| git CLI | any | required | not required | not required |
+| Maven | 3.8+ | build only | build only | build only |
 
-> **Why git for Milestone 1?** Snapshot extraction calls `git ls-tree` and `git show` via `ProcessBuilder`. The repository clone itself is handled by JGit (pure Java, no git binary needed for that step), but extraction still requires a system `git` on the `PATH`.
+> **Why git CLI for Milestone 1?** Snapshot extraction calls `git ls-tree` and `git show` via `ProcessBuilder`. The repository clone itself is handled by JGit (pure Java, no git binary needed for cloning), but file extraction still requires a system `git` on the `PATH`.
 >
-> **Milestone 2 is fully independent.** It reads the snapshot CSV produced by Milestone 1 and needs no git at all.
+> **Milestones 2 and 3 are fully independent of git.** They read the CSV produced by Milestone 1 and need no git binary at all.
+
+---
+
+## What you need in the project folder
+
+When running from scratch on a new device the following must be present before starting:
+
+- **`src/main/resources/config.yaml`** — baked into the JAR at build time. Contains all runtime configuration (Jira URL, clone URL, output paths, classifier settings). Already present in the repository.
+- **`gitclones/`** — created automatically by Milestone 1 when it clones the OpenJPA repository. Do not create it manually; do not delete it between runs (the clone step is skipped if `.git/` already exists inside).
+- **`output/`** — created automatically by each milestone on first run.
+
+Everything else (dependencies, Weka, PMD) is downloaded by Maven at build time.
 
 ---
 
@@ -27,16 +40,19 @@ A two-milestone study on software defect prediction using machine learning.
 mvn package
 ```
 
-Produces two self-contained fat JARs in `target/`:
+Produces three self-contained fat JARs in `target/`:
 
 ```
 target/milestone1.jar
 target/milestone2.jar
+target/milestone3.jar
 ```
 
 ---
 
 ## Run
+
+Run all commands from the **project root** so that `output/` and `gitclones/` are created in the right place.
 
 ```bash
 # Milestone 1 — downloads Jira data, clones repo, extracts snapshots, computes metrics
@@ -44,31 +60,43 @@ java --enable-native-access=ALL-UNNAMED -jar target/milestone1.jar
 
 # Milestone 2 — trains and evaluates classifiers, writes results CSV
 java --enable-native-access=ALL-UNNAMED -jar target/milestone2.jar
+
+# Milestone 3 — what-if analysis + Spearman correlation + ablation study
+java --enable-native-access=ALL-UNNAMED -jar target/milestone3.jar
 ```
 
-Run both commands from the project root so that output folders are created there.
+Each milestone depends on the previous one's output:
+- M2 reads `output/milestone1/5_snapshots/OPENJPA_snapshots.csv`
+- M3 reads the same snapshot CSV
 
-> `--enable-native-access=ALL-UNNAMED` suppresses a JVM warning from Weka's native library loader (required on Java 24+). The code works without it, but warnings are printed to stderr.
+> `--enable-native-access=ALL-UNNAMED` suppresses a JVM warning from Weka's native library loader (required on Java 24+). The code works without it but warnings are printed to stderr. When running via `mvn exec:java` the flag is applied automatically via `.mvn/jvm.config`.
 
-When running via Maven instead of a fat JAR, the flag is applied automatically via `.mvn/jvm.config` and does not need to be passed manually.
+### Expected runtimes
+
+| Milestone | Typical duration |
+|---|---|
+| M1 (full run) | ~5–6 minutes |
+| M2 (27 combinations, 4 threads) | ~35 minutes |
+| M2 (60 combinations with SMOTE + wrapper FS, 4 threads) | ~1–2 hours |
+| M3 (what-if + correlation) | ~10 seconds |
+| M3 (+ ablation study, single thread) | ~50 minutes additional |
 
 ---
 
 ## Configuration
 
-All behaviour is controlled by `src/main/resources/config.yaml` (baked into the JAR at build time):
+All behaviour is controlled by `src/main/resources/config.yaml` (baked into the JAR at build time). To change any setting, edit the file and rebuild with `mvn package`.
 
 | Section | Used by | Purpose |
 |---|---|---|
-| `projects` | M1 | Jira project key and JQL filter |
+| `projects` | M1 | Jira project key |
 | `git` | M1 | Clone URL and local repo path |
-| `csv` | M1 | Output directory and column selection |
+| `csv` | M1 | Output directory |
 | `metrics` | M1 | PMD batch size, CPU fraction, snapshot percentage |
 | `classifier` | M2 | Classifiers, feature selection, balancing, CV folds, parallelism |
+| `whatif` | M3 | Best classifier settings, smell column name, output path |
 
-To change settings, edit `config.yaml` and rebuild with `mvn package`.
-
-### Enabling/disabling combinations (Milestone 2)
+### Enabling/disabling M2 combinations
 
 Comment out any entry in the `classifier` section to exclude it from the run:
 
@@ -84,10 +112,21 @@ balancing:
   - NONE
   - UNDERSAMPLING
   - OVERSAMPLING
-  # - SMOTE            # disabled by default
+  - SMOTE
 ```
 
-Default: 27 combinations (~35 min with 4 threads). All enabled: 60 combinations (hours to days).
+Default: 27 combinations (~35 min with 4 threads). All enabled: 60 combinations.
+
+### Parallelism (Milestone 2)
+
+```yaml
+parallelism:
+  interactive: false        # true = prompt at runtime, false = read from config
+  combinations: "50%"       # concurrent classifier combinations (auto | N | N%)
+  randomForestSlots: "1"    # RF internal threads (auto | N)
+```
+
+The product of `combinations` and `randomForestSlots` should not exceed the number of physical cores.
 
 ---
 
@@ -100,11 +139,32 @@ output/
 │   ├── 2_enriched_jira_data/   # after OV/AV enrichment
 │   ├── 3_consistency_checked/  # after consistency checks
 │   ├── 4_proportion_applied/   # after Proportion estimation
-│   ├── 5_snapshots/            # OPENJPA_snapshots.csv  ← input for M2
-│   └── 6_extracted_source/     # Java source files extracted from Git
-└── milestone2/
-    └── OPENJPA_classifier.csv  # one row per (classifier × FS × balancing) combination
+│   ├── 5_snapshots/            # OPENJPA_snapshots.csv  ← input for M2 and M3
+│   └── 6_extracted_source/     # Java source files extracted from Git (large, not tracked)
+├── milestone2/
+│   └── OPENJPA_classifier.csv  # one row per (classifier × FS × balancing) combination
+└── milestone3/
+    ├── OPENJPA_whatif_datasets.csv    # instance counts and predictions for A, B+, B, C
+    ├── OPENJPA_whatif_prevention.csv  # prevented bugs: total, proportion, of predictable
+    ├── OPENJPA_whatif_correlation.csv # Spearman rho between NSmells and each other feature
+    └── OPENJPA_whatif_ablation.csv    # CV metrics with and without NSmells (+ delta row)
 ```
+
+The `output/milestone1/6_extracted_source/` folder is excluded from git tracking because it contains the full Java source of OpenJPA (~hundreds of MB). It is recreated by Milestone 1.
+
+---
+
+## Saving output snapshots
+
+A helper script is included to save the current `output/` folder (excluding the large `6_extracted_source/`) to a named snapshot:
+
+```bash
+bash save.sh <name>
+# example:
+bash save.sh After_M3.1
+```
+
+Snapshots are stored in `saves/<name>/` and are tracked in git.
 
 ---
 
@@ -114,9 +174,10 @@ output/
 src/main/java/com/isw2project/
 ├── Milestone1Main.java
 ├── Milestone2Main.java
+├── Milestone3Main.java
 ├── buggyness/       — bugginess labeling
 ├── classifier/      — ML pipeline (Weka wrappers, custom SMOTE and Spearman)
-├── config/          — AppConfig, ConfigLoader, MetricsConfig
+├── config/          — AppConfig, ConfigLoader, WhatIfConfig, MetricsConfig
 ├── consistency/     — consistency checks on Jira data
 ├── csv/             — CSV export
 ├── downloader/      — Jira REST API client
@@ -125,5 +186,6 @@ src/main/java/com/isw2project/
 ├── metrics/         — LOC, churn, EXP, SEXP, PMD code smells
 ├── model/           — domain entities (Issue, Version, JavaClassSnapshot, ...)
 ├── proportion/      — Proportion estimation for missing AV
-└── repocloner/      — automatic Git clone via JGit
+├── repocloner/      — automatic Git clone via JGit
+└── whatif/          — what-if analysis, Spearman correlation, ablation study
 ```
