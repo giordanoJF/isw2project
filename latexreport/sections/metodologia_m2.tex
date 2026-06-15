@@ -642,3 +642,18 @@ classe mostra un menu interattivo e legge la risposta da stdin: usare un logger
 introdurrebbe timestamp e livelli di log, rompendo l'esperienza interattiva.
 \texttt{System.out} è la scelta corretta; la soppressione documenta l'intenzionalità.
 \end{itemize}
+
+\paragraph{Code smell di \texttt{SmoteFilter}: scelta consapevole di non intervenire.}
+L'analisi statica con SonarQube rileva 29 code smell in \texttt{SmoteFilter.java}.
+Questi non sono stati corretti per una ragione precisa: \texttt{SmoteFilter} non è
+codice scritto nel contesto di questo progetto, ma il re-package del sorgente ufficiale
+Weka SMOTE (Ryan Lichtenwalter, 2008), incluso nel progetto esclusivamente perché non
+disponibile su Maven Central. Le uniche modifiche apportate rispetto all'originale sono
+puramente strutturali: cambio del package, rinomina della classe e aggiunta dell'annotazione
+\texttt{@SuppressWarnings(\{"unchecked","rawtypes","deprecation"\})} per sopprimere i
+warning del compilatore dovuti allo stile Java pre-generics del 2008.
+
+Correggere i code smell di \texttt{SmoteFilter} significherebbe riscrivere codice esterno
+non di proprietà, con il rischio di introdurre regressioni nell'algoritmo. La scelta
+coerente è trattarla come una dipendenza di terze parti: ci si affida all'originale
+verificato e si limitano le modifiche al minimo strutturale necessario per l'integrazione.
