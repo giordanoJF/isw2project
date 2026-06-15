@@ -70,11 +70,35 @@ sorgente sono tipicamente asimmetriche con code pesanti: Spearman opera sui rang
 richiede normalità. La correlazione misura quanto NSmells e ciascuna altra feature variano
 in modo concordante tra le istanze; un valore alto indica ridondanza informativa.
 
+È importante distinguere questa analisi dalla feature selection con Spearman utilizzata
+in Milestone 2. In M2, \texttt{SpearmanAttributeEval} calcola la correlazione tra
+ciascuna feature e la \textit{classe} isBuggy (correlazione feature--classe), con l'obiettivo
+di eliminare le feature poco correlate con il target. In M3.1, la stessa misura statistica
+è applicata tra NSmells e ciascuna \textit{altra feature} (correlazione feature--feature),
+con l'obiettivo di quantificare la ridondanza informativa di NSmells rispetto al resto del
+feature set. Lo stesso strumento, quindi, risponde a due domande distinte.
+
 \paragraph{Studio di ablazione.}
+Il termine \textit{ablation} proviene dalla neurosciologia, dove indica la rimozione
+chirurgica di una parte del sistema per studiarne la funzione. In machine learning uno studio
+di ablazione rimuove sistematicamente componenti di un modello per misurarne il contributo
+individuale. Nel presente studio, la componente rimossa è la feature NSmells.
+
 Viene eseguita una 10$\times$10-fold CV con RF + No FS + SMOTE su due versioni del
 dataset A: la versione completa a 19 feature e la versione con NSmells rimossa (18 feature).
 Il $\Delta$ tra le due configurazioni misura il contributo \textit{marginale} di NSmells: se
 rimuoverla degrada Kappa, AUC o NPofB20, NSmells porta informazione non catturata dalle altre
-feature; se il $\Delta \approx 0$, NSmells è ridondante. L'ablation è implementata in
-\texttt{AblationService}, che utilizza \texttt{ClassifierBuilderService} e
-\texttt{ClassifierEvaluatorService} già presenti nel package \texttt{classifier}.
+feature; se il $\Delta \approx 0$, NSmells è ridondante.
+
+La scelta della 10$\times$10-fold CV --- anziché il training completo su A seguito dalla
+predizione su A come in M3 --- è intenzionale e risponde a esigenze diverse. In M3 serve
+un modello fisso applicato in modo identico a B+ e B per isolare l'effetto dell'azzeramento
+di NSmells: il training completo su A è quindi corretto. Nell'ablation serve invece una
+stima \textit{onesta} della capacità predittiva del modello con e senza NSmells: se si
+addestrasse e predesse sullo stesso dataset A, RandomForest memorizzerebbe il training set
+e mostrerebbe Kappa $\approx 1$ in entrambe le configurazioni, rendendo il $\Delta$
+privo di significato. La CV garantisce che ogni predizione sia fuori-campione e che il $\Delta$
+rifletta la reale perdita di informazione dovuta alla rimozione di NSmells.
+L'ablation è implementata in \texttt{AblationService}, che riutilizza
+\texttt{ClassifierBuilderService} e \texttt{ClassifierEvaluatorService} già presenti nel
+package \texttt{classifier}.

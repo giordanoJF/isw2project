@@ -61,10 +61,34 @@ greedy diventerebbe meno affidabile nel trovare l'ottimo globale.
 \subsection{Milestone 3}
 
 \paragraph{Training bias su A}
-BClassifierA è addestrato sull'intero dataset A e poi usato per predire A stesso.
-Le predizioni su A non sono quindi ``out-of-sample'' e tendono a essere ottimistiche.
-Le predizioni su B+, B e C sono invece genuine (A è il training set, B+/B/C sono
-applicazioni del modello a dati che non ha mai visto come test).
+BClassifierA è addestrato sull'intero dataset A e poi applicato ad A stesso per
+produrre la riga A nella tabella dei risultati. Le predizioni su A sono quindi
+\textit{in-campione}: ogni istanza viene predetta da un modello che l'ha già inclusa
+nel training. RandomForest tende a memorizzare il training set, per cui le sue
+predizioni sulle istanze di training sono sistematicamente più accurate di quanto
+sarebbe in produzione. Il numero di Predicted Buggy su A (1.384) non è confrontabile
+con le metriche di M2 (Precision $= 0{,}63$, Kappa $= 0{,}61$), che provengono da
+10$\times$10-fold CV in cui ogni istanza è sempre predetta fuori dal training fold.
+
+Il ratio Predicted\_Buggy / Actual\_Buggy su A ($1384/1378 \approx 1{,}00$) non
+corrisponde alla Precision: il numeratore è TP + FP (tutti i predetti positivi), il
+denominatore è TP + FN (tutti i reali positivi). Il valore prossimo a 1 riflette
+l'overfitting sul training set, non l'accuratezza reale del modello.
+
+Le predizioni su B+ e C sono anch'esse in-campione: entrambi i dataset sono
+sottoinsiemi di A, quindi il modello ha già visto quelle istanze durante il training.
+L'unico dataset tecnicamente fuori-campione è B, che contiene istanze di B+ con
+NSmells modificato: il modello non ha mai visto quella combinazione di valori.
+Tuttavia B è un controfattuale artificiale, non una distribuzione reale.
+
+Il bias in-campione non invalida tuttavia l'analisi controfattuale, perché l'obiettivo
+di M3 non è valutare l'accuratezza del modello, bensì misurare la sua
+\textit{sensibilità} alla feature NSmells. Il confronto rilevante è B+ vs B: le
+stesse istanze, lo stesso modello addestrato, con l'unica differenza che NSmells è
+zero in B. Il bias in-campione agisce in modo identico su entrambi i dataset e si
+cancella nel confronto: le 63 istanze prevenute riflettono genuinamente quanto il
+modello cambia giudizio al variare di NSmells, indipendentemente dal fatto che
+quelle istanze fossero nel training set.
 
 \paragraph{Indipendenza tra NSmells e le altre feature}
 L'analisi controfattuale assume implicitamente che sia possibile azzerare NSmells

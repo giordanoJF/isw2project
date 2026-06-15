@@ -24,6 +24,23 @@ C  (NSmells $= 0$)       &  2.546 &   259 &   259 \\
 I totali sono internamente consistenti: B+ + C = 12.792 + 2.546 = 15.338 = A, e B ha lo
 stesso numero di istanze di B+ per costruzione.
 
+\paragraph{Nota sulla riga A: predizioni in-campione.}
+Le predizioni su A non sono confrontabili con le metriche di M2 e non costituiscono
+una valutazione del modello. BClassifierA è addestrato sull'intero A e poi applicato
+ad A stesso: ogni istanza viene predetta da un modello che l'ha già vista in training.
+RandomForest in queste condizioni tende a memorizzare il training set, producendo
+predizioni ottimistiche. In M2, la stima delle prestazioni avviene tramite 10$\times$10-fold
+CV, in cui ogni istanza è predetta da un modello che non l'ha mai vista: le due stime
+non sono confrontabili.
+
+La riga A nella tabella serve esclusivamente come riferimento numerico per il calcolo
+di \textit{Prevented\_Proportion} (denominatore = Actual\_Buggy\_A = 1.378), non come
+misura di accuratezza del modello. Anche le predizioni su B+ e C sono in-campione,
+poiché entrambi i dataset sono sottoinsiemi di A. L'unico dataset non visto in training
+è B, che contiene versioni modificate di B+ con NSmells azzerato. Questo bias
+in-campione non invalida l'analisi: il confronto B+ vs B è il cuore di M3 e il bias
+agisce in modo identico su entrambi, cancellandosi nel calcolo delle istanze prevenute.
+
 \subsubsection{Metriche di prevenzione}
 
 \begin{table}[h]
