@@ -55,3 +55,26 @@ Tre metriche quantificano la prevenzione:
   \item \textbf{Prevented\_Of\_Predictable}: Prevented\_Total / Predicted\_Buggy\_in\_B+
         — quota dei bug predetti in B+ che sarebbero stati salvati dall'assenza di smell.
 \end{itemize}
+
+\subsubsection{Analisi di ridondanza: correlazione e studio di ablazione (M3.1)}
+
+Le analisi precedenti quantificano l'impatto degli smell sulle predizioni ma non spiegano
+direttamente \textit{perché} tale impatto è basso. Due analisi supplementari forniscono
+evidenza empirica del meccanismo di ridondanza.
+
+\paragraph{Correlazione di Spearman.}
+Per ogni feature del dataset A (escludendo NSmells stessa e la classe isBuggy) viene
+calcolata la correlazione di Spearman $\rho$ con \texttt{Previous\_Release\_Code\_Smells}.
+La correlazione di Spearman è stata scelta perché le distribuzioni delle metriche di codice
+sorgente sono tipicamente asimmetriche con code pesanti: Spearman opera sui ranghi e non
+richiede normalità. La correlazione misura quanto NSmells e ciascuna altra feature variano
+in modo concordante tra le istanze; un valore alto indica ridondanza informativa.
+
+\paragraph{Studio di ablazione.}
+Viene eseguita una 10$\times$10-fold CV con RF + No FS + SMOTE su due versioni del
+dataset A: la versione completa a 19 feature e la versione con NSmells rimossa (18 feature).
+Il $\Delta$ tra le due configurazioni misura il contributo \textit{marginale} di NSmells: se
+rimuoverla degrada Kappa, AUC o NPofB20, NSmells porta informazione non catturata dalle altre
+feature; se il $\Delta \approx 0$, NSmells è ridondante. L'ablation è implementata in
+\texttt{AblationService}, che utilizza \texttt{ClassifierBuilderService} e
+\texttt{ClassifierEvaluatorService} già presenti nel package \texttt{classifier}.

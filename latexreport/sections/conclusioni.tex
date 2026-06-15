@@ -43,12 +43,17 @@ cambierebbero etichetta da BUGGY a CLEAN. L'effetto netto sull'intero insieme B 
 addirittura un lieve aumento dei bug predetti ($+12$), segno che NSmells gioca un
 ruolo marginale nel modello.
 
-Questo risultato non contraddice la letteratura sull'associazione smell--bug, ma
-evidenzia che in un modello multivariato con 19 feature --- in particolare con metriche
-di processo cumulative come \texttt{LOC\_Touched}, \texttt{Churn} e \texttt{NR} ---
-i code smell non apportano informazione predittiva indipendente.
-Il principale driver di bugginess in Apache OpenJPA è la storia di modifica del codice,
-non la sua qualità strutturale misurata tramite smell.
+Le analisi di ridondanza (M3.1) forniscono la spiegazione empirica. La correlazione di
+Spearman mostra che NSmells è fortemente collineare con le metriche di processo: $\rho =
+0{,}78$ con LOC, $\rho > 0{,}65$ con Churn, LOC\_Touched, LOC\_Added e Weighted\_Age. Lo
+studio di ablazione conferma che rimuovere NSmells lascia Kappa e AUC invariati ($\Delta
+\approx 0$), con un lieve miglioramento di Precision ($+0{,}004$): la feature è ridondante
+e il suo contributo marginale al modello è nullo.
+
+Il principale driver di bugginess in Apache OpenJPA è la storia di modifica del codice.
+I code smell PMD --- in particolare quelli rilevati dal ruleset \texttt{codestyle} ---
+non apportano informazione predittiva indipendente perché il loro conteggio cresce
+linearmente con la dimensione del file, già catturata dalle metriche di processo.
 
 \subsection{Milestone 4}
 

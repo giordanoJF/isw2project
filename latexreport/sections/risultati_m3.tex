@@ -146,3 +146,101 @@ AUC $= 0{,}94$, Kappa $= 0{,}61$ da M2.
 L'impatto è limitato: nel contesto di Apache OpenJPA con metriche PMD, il principale
 driver di bugginess sono le metriche di processo cumulative, non la qualità strutturale
 del codice misurata tramite PMD.
+
+\subsubsection{Analisi di ridondanza (M3.1)}
+
+Per spiegare empiricamente il basso impatto di NSmells, sono state condotte due analisi
+supplementari sul dataset A.
+
+\paragraph{Correlazione di Spearman tra NSmells e le altre feature.}
+
+La Tabella~\ref{tab:whatif_correlation} riporta la correlazione di Spearman $\rho$ tra
+\texttt{Previous\_Release\_Code\_Smells} e ciascuna delle altre 18 feature, ordinate per
+valore assoluto decrescente.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Feature} & $\boldsymbol{\rho}$ \\
+\midrule
+LOC               & $0{,}7821$ \\
+Max\_Churn        & $0{,}7123$ \\
+LOC\_Touched      & $0{,}6909$ \\
+Churn             & $0{,}6909$ \\
+Weighted\_Age     & $0{,}6900$ \\
+Max\_LOC\_Added   & $0{,}6632$ \\
+LOC\_Added        & $0{,}6618$ \\
+Avg\_Churn        & $0{,}5621$ \\
+Nauth             & $0{,}5312$ \\
+NR                & $0{,}5276$ \\
+Avg\_LOC\_Added   & $0{,}4700$ \\
+Age               & $0{,}2894$ \\
+Change\_Set\_Size & $0{,}2518$ \\
+Avg\_Change\_Set  & $-0{,}2416$ \\
+Nfix              & $0{,}1666$ \\
+Max\_Change\_Set  & $0{,}1606$ \\
+SEXP              & $0{,}1302$ \\
+EXP               & $0{,}0381$ \\
+\bottomrule
+\end{tabular}
+\caption{Correlazione di Spearman tra \texttt{Previous\_Release\_Code\_Smells} e le altre
+         18 feature del dataset A (Apache OpenJPA, 15.338 istanze).}
+\label{tab:whatif_correlation}
+\end{table}
+
+Sei feature su 18 presentano $\rho > 0{,}60$ con NSmells: LOC ($0{,}78$), Max\_Churn
+($0{,}71$), LOC\_Touched ($0{,}69$), Churn ($0{,}69$), Weighted\_Age ($0{,}69$),
+Max\_LOC\_Added ($0{,}66$). Il risultato è coerente con il meccanismo descritto nella
+sezione precedente: le violazioni del ruleset \texttt{codestyle} di PMD crescono
+proporzionalmente alla dimensione del file, introducendo una correlazione artificiale tra
+NSmells e tutte le metriche che catturano dimensione e storia delle modifiche. Ciò riduce
+l'indipendenza informativa di NSmells rispetto alle metriche di processo, spiegando
+perché RandomForest non la utilizza attivamente.
+
+Le uniche feature con correlazione bassa rispetto a NSmells sono EXP ($0{,}04$) e SEXP
+($0{,}13$), che misurano l'esperienza dell'autore e sono intrinsecamente indipendenti dalla
+dimensione del file. Tuttavia, anche queste feature hanno correlazione individuale con
+isBuggy bassa, per cui non compensano la debolezza di NSmells nel modello.
+
+\paragraph{Studio di ablazione: RF+SMOTE con e senza NSmells.}
+
+La Tabella~\ref{tab:whatif_ablation} confronta le prestazioni di RF + No FS + SMOTE in
+10$\times$10-fold CV sul dataset A completo (19 feature) e sul dataset A privo di NSmells
+(18 feature).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Configurazione} & \textbf{Feature} & \textbf{P} & \textbf{R} & \textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+RF + SMOTE (tutte le feature) & 19 & $0{,}625$ & $0{,}664$ & $0{,}942$ & $0{,}608$ & $0{,}880$ \\
+RF + SMOTE (senza NSmells)    & 18 & $0{,}629$ & $0{,}664$ & $0{,}941$ & $0{,}610$ & $0{,}880$ \\
+\midrule
+$\Delta$ (senza $-$ con)      & $-1$ & $+0{,}004$ & $\approx 0$ & $\approx 0$ & $+0{,}002$ & $\approx 0$ \\
+\bottomrule
+\end{tabular}
+\caption{Studio di ablazione: prestazioni di RF + No FS + SMOTE in 10$\times$10-fold CV
+         con e senza la feature \texttt{Previous\_Release\_Code\_Smells}.}
+\label{tab:whatif_ablation}
+\end{table}
+
+Il $\Delta$ è essenzialmente zero su tutte le metriche. In modo controintuitivo, rimuovere
+NSmells produce un lieve \textit{miglioramento} di Precision ($+0{,}004$) e Kappa
+($+0{,}002$): quando una feature è ridondante e collineare con altre, il modello la può
+usare in modo rumoroso, suddividendo lo spazio delle decisioni in modo leggermente meno
+pulito. Rimuoverla riduce questo rumore marginale. L'effetto è minimo ma in direzione
+opposta a quella attesa se NSmells avesse valore indipendente.
+
+La configurazione a 19 feature produce Kappa $= 0{,}608$ e AUC $= 0{,}942$, sostanzialmente
+identici ai valori di M2 (Kappa $= 0{,}61$, AUC $= 0{,}94$): la CV è riproducibile e le due
+esecuzioni sono coerenti.
+
+\paragraph{Sintesi delle evidenze M3.1.}
+Le due analisi si rinforzano a vicenda: NSmells correla fortemente con le metriche di
+processo ($\rho$ fino a $0{,}78$ con LOC) \textit{e} rimuoverla non degrada il modello
+($\Delta \approx 0$). L'insieme di queste evidenze dimostra empiricamente che il basso
+impatto del what-if di M3 (5,60\%) non dipende da un modello poco accurato, ma dalla
+ridondanza informativa di NSmells rispetto alle metriche di processo già presenti nel
+dataset.
