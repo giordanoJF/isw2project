@@ -2,6 +2,7 @@ package com.isw2project.whatif;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import weka.core.Attribute;
 import weka.core.Instances;
 
 import java.util.ArrayList;
@@ -15,19 +16,23 @@ public class CorrelationService {
 
     private static final Logger log = LoggerFactory.getLogger(CorrelationService.class);
 
-    public List<Map<String, String>> computeCorrelation(Instances data, String targetAttribute) throws Exception {
-        int targetIdx = data.attribute(targetAttribute).index();
-        if (targetIdx < 0) {
+    private static final String SPEARMAN_COL = "Spearman_with_NSmells";
+
+    public List<Map<String, String>> computeCorrelation(Instances data, String targetAttribute) {
+        Attribute attr = data.attribute(targetAttribute);
+        if (attr == null) {
             throw new IllegalArgumentException("Attribute not found: " + targetAttribute);
         }
+        int targetIdx = attr.index();
 
         double[] targetValues = extractValues(data, targetIdx);
         double[] targetRanks  = ranks(targetValues);
 
         List<Map<String, String>> rows = new ArrayList<>();
         for (int i = 0; i < data.numAttributes(); i++) {
-            if (i == targetIdx || i == data.classIndex()) continue;
-            if (!data.attribute(i).isNumeric()) continue;
+            if (i == targetIdx || i == data.classIndex() || !data.attribute(i).isNumeric()) {
+                continue;
+            }
 
             double[] featureValues = extractValues(data, i);
             double[] featureRanks  = ranks(featureValues);
@@ -35,13 +40,13 @@ public class CorrelationService {
 
             Map<String, String> row = new LinkedHashMap<>();
             row.put("Feature", data.attribute(i).name());
-            row.put("Spearman_with_NSmells", String.format("%.4f", spearman));
+            row.put(SPEARMAN_COL, String.format("%.4f", spearman));
             rows.add(row);
         }
 
         rows.sort((a, b) -> Double.compare(
-            Math.abs(Double.parseDouble(b.get("Spearman_with_NSmells"))),
-            Math.abs(Double.parseDouble(a.get("Spearman_with_NSmells")))
+            Math.abs(Double.parseDouble(b.get(SPEARMAN_COL))),
+            Math.abs(Double.parseDouble(a.get(SPEARMAN_COL)))
         ));
 
         log.info("Spearman correlation computed for {} features against {}", rows.size(), targetAttribute);
@@ -76,12 +81,15 @@ public class CorrelationService {
 
     private double pearson(double[] x, double[] y) {
         int n = x.length;
-        double meanX = 0.0, meanY = 0.0;
+        double meanX = 0.0;
+        double meanY = 0.0;
         for (int i = 0; i < n; i++) { meanX += x[i]; meanY += y[i]; }
         meanX /= n;
         meanY /= n;
 
-        double cov = 0.0, varX = 0.0, varY = 0.0;
+        double cov  = 0.0;
+        double varX = 0.0;
+        double varY = 0.0;
         for (int i = 0; i < n; i++) {
             double dx = x[i] - meanX;
             double dy = y[i] - meanY;

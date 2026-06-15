@@ -35,29 +35,34 @@ public class AblationService {
 
     public List<Map<String, String>> runAblation(Instances data, String smellsColumn) throws Exception {
         int posIdx = data.classAttribute().indexOfValue("true");
+        int numFeaturesFull = data.numAttributes() - 1;
 
-        log.info("Ablation (1/2): RF + SMOTE with all {} features — estimated ~25 min",
-                data.numAttributes() - 1);
+        log.info("Ablation (1/2): RF + SMOTE with all {} features — estimated ~25 min", numFeaturesFull);
         Classifier clfFull = classifierBuilder.build(
                 ClassifierType.RANDOM_FOREST, FeatureSelectionStrategy.NONE,
                 BalancingStrategy.SMOTE, data, 1);
         double[] full = evaluator.evaluate(data, clfFull, RUNS, FOLDS, posIdx);
-        log.info("Full: P={} R={} AUC={} Kappa={} NPofB20={}",
-                fmt(full[0]), fmt(full[1]), fmt(full[2]), fmt(full[3]), fmt(full[4]));
+        if (log.isInfoEnabled()) {
+            log.info("Full: P={} R={} AUC={} Kappa={} NPofB20={}",
+                    fmt(full[0]), fmt(full[1]), fmt(full[2]), fmt(full[3]), fmt(full[4]));
+        }
 
         Instances dataNoSmells = removeAttribute(data, smellsColumn);
+        int numFeaturesReduced = dataNoSmells.numAttributes() - 1;
         log.info("Ablation (2/2): RF + SMOTE without {} ({} features) — estimated ~25 min",
-                smellsColumn, dataNoSmells.numAttributes() - 1);
+                smellsColumn, numFeaturesReduced);
         Classifier clfReduced = classifierBuilder.build(
                 ClassifierType.RANDOM_FOREST, FeatureSelectionStrategy.NONE,
                 BalancingStrategy.SMOTE, dataNoSmells, 1);
         double[] reduced = evaluator.evaluate(dataNoSmells, clfReduced, RUNS, FOLDS, posIdx);
-        log.info("Reduced: P={} R={} AUC={} Kappa={} NPofB20={}",
-                fmt(reduced[0]), fmt(reduced[1]), fmt(reduced[2]), fmt(reduced[3]), fmt(reduced[4]));
+        if (log.isInfoEnabled()) {
+            log.info("Reduced: P={} R={} AUC={} Kappa={} NPofB20={}",
+                    fmt(reduced[0]), fmt(reduced[1]), fmt(reduced[2]), fmt(reduced[3]), fmt(reduced[4]));
+        }
 
         List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(buildRow("RF_SMOTE_all_features", data.numAttributes() - 1, full));
-        rows.add(buildRow("RF_SMOTE_no_NSmells",   dataNoSmells.numAttributes() - 1, reduced));
+        rows.add(buildRow("RF_SMOTE_all_features", numFeaturesFull,    full));
+        rows.add(buildRow("RF_SMOTE_no_NSmells",   numFeaturesReduced, reduced));
         rows.add(buildDeltaRow(full, reduced));
         return rows;
     }

@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import weka.classifiers.Classifier;
 import weka.core.Instances;
 
+import java.util.Arrays;
+
 public class WhatIfPredictorService {
 
     private static final Logger log = LoggerFactory.getLogger(WhatIfPredictorService.class);
@@ -24,7 +26,35 @@ public class WhatIfPredictorService {
         );
     }
 
-    public record Predictions(boolean[] a, boolean[] bPlus, boolean[] b, boolean[] c) {}
+    public record Predictions(boolean[] a, boolean[] bPlus, boolean[] b, boolean[] c) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Predictions other)) return false;
+            return Arrays.equals(a, other.a)
+                && Arrays.equals(bPlus, other.bPlus)
+                && Arrays.equals(b, other.b)
+                && Arrays.equals(c, other.c);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(a);
+            result = 31 * result + Arrays.hashCode(bPlus);
+            result = 31 * result + Arrays.hashCode(b);
+            result = 31 * result + Arrays.hashCode(c);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Predictions[a=" + Arrays.toString(a)
+                + ", bPlus=" + Arrays.toString(bPlus)
+                + ", b=" + Arrays.toString(b)
+                + ", c=" + Arrays.toString(c) + "]";
+        }
+    }
 
     public Predictions trainAndPredict(WhatIfDatasetService.Datasets datasets,
                                        ClassifierType clfType,
