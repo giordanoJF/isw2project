@@ -19,18 +19,24 @@ public class WhatIfOrchestrator {
     private final WhatIfDatasetService datasetService;
     private final WhatIfPredictorService predictorService;
     private final WhatIfTableService tableService;
+    private final CorrelationService correlationService;
+    private final AblationService ablationService;
     private final CsvWriterService csvWriter;
 
     public WhatIfOrchestrator(WhatIfConfig config,
                                WhatIfDatasetService datasetService,
                                WhatIfPredictorService predictorService,
                                WhatIfTableService tableService,
+                               CorrelationService correlationService,
+                               AblationService ablationService,
                                CsvWriterService csvWriter) {
-        this.config           = config;
-        this.datasetService   = datasetService;
-        this.predictorService = predictorService;
-        this.tableService     = tableService;
-        this.csvWriter        = csvWriter;
+        this.config              = config;
+        this.datasetService      = datasetService;
+        this.predictorService    = predictorService;
+        this.tableService        = tableService;
+        this.correlationService  = correlationService;
+        this.ablationService     = ablationService;
+        this.csvWriter           = csvWriter;
     }
 
     public void run() {
@@ -67,5 +73,29 @@ public class WhatIfOrchestrator {
 
         log.info("Results written to {}/", config.getOutputDir());
         log.info("=== Milestone 3 complete ===");
+
+        // M3.1 — Correlation analysis
+        log.info("--- M3.1 - Correlation Analysis ---");
+        List<Map<String, String>> corrRows;
+        try {
+            corrRows = correlationService.computeCorrelation(datasets.a(), config.getSmellsColumn());
+        } catch (Exception e) {
+            log.error("Correlation analysis failed: {}", e.getMessage());
+            return;
+        }
+        csvWriter.write(config.getOutputDir(), prefix + "_whatif_correlation.csv", corrRows);
+
+        // M3.1 — Ablation study (RF+SMOTE with and without NSmells)
+        log.info("--- M3.1 - Ablation Study (RF+SMOTE ± NSmells) ---");
+        List<Map<String, String>> ablationRows;
+        try {
+            ablationRows = ablationService.runAblation(datasets.a(), config.getSmellsColumn());
+        } catch (Exception e) {
+            log.error("Ablation study failed: {}", e.getMessage());
+            return;
+        }
+        csvWriter.write(config.getOutputDir(), prefix + "_whatif_ablation.csv", ablationRows);
+
+        log.info("=== Milestone 3.1 complete ===");
     }
 }
