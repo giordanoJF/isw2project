@@ -31,11 +31,11 @@ public class WhatIfPredictorService {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof Predictions other)) return false;
-            return Arrays.equals(a, other.a)
-                && Arrays.equals(bPlus, other.bPlus)
-                && Arrays.equals(b, other.b)
-                && Arrays.equals(c, other.c);
+            if (!(o instanceof Predictions(boolean[] oa, boolean[] obPlus, boolean[] ob, boolean[] oc))) return false;
+            return Arrays.equals(a, oa)
+                && Arrays.equals(bPlus, obPlus)
+                && Arrays.equals(b, ob)
+                && Arrays.equals(c, oc);
         }
 
         @Override
