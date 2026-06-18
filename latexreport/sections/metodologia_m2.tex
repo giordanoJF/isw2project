@@ -228,9 +228,12 @@ quella scelta. Le metriche risultano ottimistiche.
 
 La soluzione adottata è \texttt{FilteredClassifier} di Weka, che garantisce che ogni
 filtro (balancing e feature selection) venga applicato internamente a ogni fold.
-L'ordine dei filtri è rilevante: prima il balancing, poi la feature selection. La FS
-deve osservare la distribuzione già bilanciata: calcolare InfoGain su un training
-sbilanciato (9\% buggy) produrrebbe score dominati dalla classe maggioritaria.
+L'ordine dei filtri è: prima il balancing, poi la feature selection. Entrambi gli
+ordini sono usati in letteratura; quello adottato garantisce che la FS calcoli gli
+score su una distribuzione bilanciata, evitando che la sproporzione 9\%/91\% comprima
+i valori di correlazione della classe minoritaria. Con la soglia \texttt{threshold=0.0}
+usata in questo progetto la differenza pratica tra i due ordini è comunque trascurabile:
+vengono eliminate solo le feature con score esattamente zero, indipendentemente dall'ordine.
 
 \paragraph{NONE -- Nessun balancing}
 
