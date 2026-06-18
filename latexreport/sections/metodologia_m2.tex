@@ -202,28 +202,35 @@ ugualmente frequenti nel training set, costringendo il modello a imparare i patt
 della classe buggy.
 
 Il balancing viene applicato \textbf{esclusivamente sul training fold} tramite
-\texttt{FilteredClassifier}: il test fold non viene mai modificato perché rappresenta la
-distribuzione reale del problema --- quella che il modello incontrerà in produzione.
+\texttt{FilteredClassifier}: il test fold non viene mai modificato perché deve essere
+\textbf{come il mondo reale}, cioè riflettere la distribuzione effettiva del problema
+--- quella che il modello incontrerà in produzione ($\approx$9\% buggy, $\approx$91\%
+non-buggy).
 
 Applicare balancing o feature selection sull'intero dataset \emph{prima} della
 cross-validation è un errore metodologico noto come \textit{data leakage}:
 
 \begin{itemize}
-\item \textbf{SMOTE e oversampling:} SMOTE genera punti sintetici interpolando istanze
-del training. Se applicato prima dello split, un punto sintetico potrebbe finire nel test
-set, contaminandolo con dati derivati dall'insieme di addestramento.
-\item \textbf{Feature selection:} se il calcolo degli score usa tutte le istanze, le
-label del test fold influenzano la selezione, rendendola artificialmente buona.
-\item \textbf{Undersampling:} la selezione delle istanze da rimuovere viene effettuata
-osservando l'intero dataset, incluse le istanze del test set.
+\item \textbf{Oversampling:} \texttt{Resample} bilancia duplicando istanze della classe
+minoritaria. Se applicato prima dello split, le copie vengono distribuite casualmente
+nei fold: l'istanza originale X e la sua copia X' --- identiche --- possono finire
+rispettivamente nel training fold e nel test fold. Il modello si addestra su X, poi
+viene valutato su X', che conosce già esattamente. Le metriche risultano
+artificialmente ottimistiche.
+
+\item \textbf{Feature selection:} InfoGain e Spearman assegnano uno score a ogni feature
+misurando quanto è correlata con la colonna \texttt{isBuggy}. Se questo calcolo viene
+eseguito sull'intero dataset, lo score include anche le istanze che finiranno nel test
+fold: si sta barando, perché si usano le etichette di test per decidere quali feature
+selezionare, e poi si valuta il modello sulle stesse etichette che hanno già influenzato
+quella scelta. Le metriche risultano ottimistiche.
 \end{itemize}
 
-In tutti i casi le metriche stimate sembrano migliori di quelle reali. La soluzione
-adottata è \texttt{FilteredClassifier} di Weka, che garantisce che ogni filtro
-(balancing e feature selection) venga applicato internamente a ogni fold. L'ordine dei
-filtri è rilevante: prima il balancing, poi la feature selection. La FS deve osservare
-la distribuzione già bilanciata: calcolare InfoGain su un training sbilanciato (9\%
-buggy) produrrebbe score dominati dalla classe maggioritaria.
+La soluzione adottata è \texttt{FilteredClassifier} di Weka, che garantisce che ogni
+filtro (balancing e feature selection) venga applicato internamente a ogni fold.
+L'ordine dei filtri è rilevante: prima il balancing, poi la feature selection. La FS
+deve osservare la distribuzione già bilanciata: calcolare InfoGain su un training
+sbilanciato (9\% buggy) produrrebbe score dominati dalla classe maggioritaria.
 
 \paragraph{NONE -- Nessun balancing}
 
@@ -321,11 +328,48 @@ un singolo fold.
 \paragraph{FilteredClassifier e prevenzione del data leakage}
 
 \texttt{FilteredClassifier} di Weka garantisce che ogni filtro (balancing e feature
-selection) venga applicato \textbf{internamente per ogni fold}: il training fold è
-l'unico input per il fit dei filtri, mentre il test fold viene solo trasformato (applicando
-la selezione già calcolata sul training) senza mai influenzare il fit. Non vi è data
-leakage: ogni predizione di test è prodotta da un modello che non ha mai visto quella
-istanza.
+selection) venga applicato \textbf{internamente per ogni fold}, non sull'intero dataset
+prima della suddivisione. Il flusso per ogni fold è il seguente:
+
+\begin{quote}
+\textit{Fase di training:} \texttt{crossValidateModel} chiama
+\texttt{FilteredClassifier.buildClassifier(training\_fold)}. Il filtro di balancing
+viene fittato e applicato esclusivamente sul training fold, producendo il training
+set bilanciato. La feature selection viene poi fittata sul training fold bilanciato,
+calcolando gli score (InfoGain, Spearman) senza visibilità su nessuna istanza del
+test fold. Il classificatore base viene addestrato sul risultato finale.
+\smallskip
+
+\textit{Fase di predizione:} \texttt{FilteredClassifier.classifyInstance(test\_instance)}
+applica esclusivamente la feature selection già fittata (trasformazione, non re-fit).
+Il filtro di balancing non viene mai invocato in predizione: i filtri supervisionati
+d'istanza (\texttt{Resample}, \texttt{SpreadSubsample}, \texttt{SmoteFilter}) operano
+sull'insieme di istanze durante \texttt{buildClassifier} e non hanno semantica su una
+singola istanza isolata. Il test fold non subisce né aggiunte sintetiche né rimozioni.
+\end{quote}
+
+Non vi è data leakage di alcuna forma: ogni predizione di test è prodotta da un
+modello che non ha mai visto quella istanza, con feature selection e balancing calcolati
+esclusivamente sui dati di training di quel fold.
+
+\paragraph{Test fold: distribuzione naturale e stratificazione}
+
+Il fatto che ogni fold di test contenga una proporzione di istanze buggy che può
+discostarsi da quella del dataset completo non è un problema metodologico: è il
+comportamento corretto. Il test set deve riflettere la distribuzione reale del problema.
+Il balancing è uno strumento di training --- serve a impedire che il classificatore
+apprenda la scorciatoia di predire sempre la classe maggioritaria --- ma non deve
+modificare i dati su cui la performance viene misurata. Applicare oversampling o
+undersampling anche sul test fold significherebbe valutare su una distribuzione
+artificiale, non su quella che il modello incontrerà in produzione: precision e recall
+risulterebbero distorti e non interpretabili.
+
+Weka usa \textbf{stratified cross-validation} di default: \texttt{crossValidateModel}
+distribuisce le istanze nei fold mantenendo approssimativamente la stessa proporzione
+di classi del dataset completo in ogni fold ($\approx$9\% buggy). La stratificazione
+riduce la varianza della stima impedendo che un fold di test contenga per caso zero
+istanze buggy, il che renderebbe le metriche sulla classe positiva (Precision, Recall,
+AUC, NPofB20) indefinite o non confrontabili tra fold.
 
 \paragraph{Cross-validation annidata per i metodi wrapper}
 \label{sec:nested-cv}
