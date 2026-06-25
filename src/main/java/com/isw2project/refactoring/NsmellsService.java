@@ -37,7 +37,7 @@ public class NsmellsService {
         this.filterService = filterService;
     }
 
-    public LinkedHashMap<String, Integer> computeSmells(Path sourceDir, int batchSize, double cpuFraction) {
+    public Map<String, Integer> computeSmells(Path sourceDir, int batchSize, double cpuFraction) {
         List<Path> files = collectProductionFiles(sourceDir);
         log.info("Found {} production Java files in {}", files.size(), sourceDir);
 
@@ -72,7 +72,7 @@ public class NsmellsService {
                     .filter(Files::isRegularFile)
                     .filter(p -> filterService.isProductionJavaFile(
                             sourceDir.relativize(p).toString().replace("\\", "/")))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

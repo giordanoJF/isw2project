@@ -11,8 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class ClassSelectionOrchestrator {
@@ -41,26 +41,28 @@ public class ClassSelectionOrchestrator {
         Path sourceDir = sourceBaseDir.resolve(config.getLastRelease());
         log.info("Analyzing release '{}' from {}", config.getLastRelease(), sourceDir);
 
-        LinkedHashMap<String, Integer> allSmells = nsmellsService.computeSmells(sourceDir, batchSize, cpuFraction);
+        Map<String, Integer> allSmells = nsmellsService.computeSmells(sourceDir, batchSize, cpuFraction);
         log.info("Computed Nsmells for {} classes", allSmells.size());
 
-        LinkedHashMap<String, Integer> filtered = sizeFilterService.filter(
+        Map<String, Integer> filtered = sizeFilterService.filter(
                 allSmells, sourceDir, config.getSmallClassLocThreshold());
 
         int x = config.getSelectionX();
         List<String> selected = selectorService.select(filtered, x);
 
         List<String> ranked = new ArrayList<>(filtered.keySet());
-        log.info("=== CLASS SELECTION RESULT (G=7, X = 7 mod 5 = {}, case {}: first+{} and last-{}) ===",
-                x, x, x, x);
-        log.info("Rank {}: {} [Nsmells={}]", x + 1, selected.get(0), filtered.get(selected.get(0)));
-        log.info("Rank {}: {} [Nsmells={}]", ranked.size() - x, selected.get(1), filtered.get(selected.get(1)));
+        if (log.isInfoEnabled()) {
+            log.info("=== CLASS SELECTION RESULT (G=7, X = 7 mod 5 = {}, case {}: first+{} and last-{}) ===",
+                    x, x, x, x);
+            log.info("Rank {}: {} [Nsmells={}]", x + 1, selected.get(0), filtered.get(selected.get(0)));
+            log.info("Rank {}: {} [Nsmells={}]", ranked.size() - x, selected.get(1), filtered.get(selected.get(1)));
+        }
 
         writeCsv(config, sourceDir, filtered, selected);
     }
 
     private void writeCsv(RefactoringConfig config, Path sourceDir,
-                           LinkedHashMap<String, Integer> filtered, List<String> selected) {
+                           Map<String, Integer> filtered, List<String> selected) {
         Path outFile = Path.of(config.getOutputDir()).resolve("class_selection.csv");
         try {
             Files.createDirectories(outFile.getParent());
@@ -87,7 +89,7 @@ public class ClassSelectionOrchestrator {
     private long locOf(Path file) {
         try (Stream<String> lines = Files.lines(file)) {
             return lines.count();
-        } catch (IOException e) {
+        } catch (IOException _) {
             return 0;
         }
     }

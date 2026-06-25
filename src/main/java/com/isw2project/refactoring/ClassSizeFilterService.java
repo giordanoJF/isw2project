@@ -15,7 +15,7 @@ public class ClassSizeFilterService {
 
     private static final Logger log = LoggerFactory.getLogger(ClassSizeFilterService.class);
 
-    public LinkedHashMap<String, Integer> filter(LinkedHashMap<String, Integer> smells, Path sourceDir, int locThreshold) {
+    public Map<String, Integer> filter(Map<String, Integer> smells, Path sourceDir, int locThreshold) {
         LinkedHashMap<String, Integer> result = new LinkedHashMap<>();
         int removed = 0;
         for (Map.Entry<String, Integer> entry : smells.entrySet()) {

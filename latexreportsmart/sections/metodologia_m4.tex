@@ -9,7 +9,8 @@ Tabella~\ref{tab:m4-versions}).
 
 Tutte le classi Java di produzione dell'ultima release disponibile nel repository
 Git (\texttt{4.1.1}) vengono analizzate con PMD 7.7.0 (stessi ruleset di M1) per
-contare le violazioni (\emph{Nsmells}). Le classi con LOC $< 100$ sono escluse;
+contare le violazioni (\emph{Nsmells}). Le classi con LOC $< 100$ sono escluse per
+scarsità di metodi e opportunità di refactoring trascurabili;
 le restanti 819 vengono ordinate per Nsmells decrescente. La selezione segue la formula
 del docente: $G \Rightarrow 7 \bmod 5 = 2$, caso~2 $\Rightarrow$ rank~$3$ e rank~$817$
 su $N = 819$ (Tabella~\ref{tab:m4-selected}).

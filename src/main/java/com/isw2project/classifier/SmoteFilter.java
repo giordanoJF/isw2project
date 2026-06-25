@@ -44,11 +44,13 @@
  *    raw types (pre-generics Java style) and the deprecated Double constructor.
  *
  * The doSMOTE() method - which contains the entire algorithm - is identical
- * to the original.
+ * to the original (refactored into helper methods for readability).
  */
 
 package com.isw2project.classifier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import weka.core.Attribute;
 import weka.core.Capabilities;
 import weka.core.Capabilities.Capability;
@@ -66,18 +68,15 @@ import weka.core.Utils;
 import weka.filters.Filter;
 import weka.filters.SupervisedFilter;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Vector;
 
 @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
 public class SmoteFilter
@@ -86,11 +85,13 @@ public class SmoteFilter
 
   static final long serialVersionUID = -1653880819059250364L;
 
-  protected int m_NearestNeighbors = 5;
-  protected int m_RandomSeed = 1;
-  protected double m_Percentage = 100.0;
-  protected String m_ClassValueIndex = "0";
-  protected boolean m_DetectMinorityClass = true;
+  private static final Logger log = LoggerFactory.getLogger(SmoteFilter.class);
+
+  protected int nearestNeighbors = 5;
+  protected int randomSeed = 1;
+  protected double percentage = 100.0;
+  protected String classValueIndex = "0";
+  protected boolean detectMinorityClass = true;
 
   public String globalInfo() {
     return "Resamples a dataset by applying the Synthetic Minority Oversampling TEchnique (SMOTE)."
@@ -100,6 +101,7 @@ public class SmoteFilter
         + getTechnicalInformation().toString();
   }
 
+  @Override
   public TechnicalInformation getTechnicalInformation() {
     TechnicalInformation result = new TechnicalInformation(Type.ARTICLE);
     result.setValue(Field.AUTHOR, "Nitesh V. Chawla et. al.");
@@ -111,10 +113,12 @@ public class SmoteFilter
     return result;
   }
 
+  @Override
   public String getRevision() {
     return RevisionUtils.extract("$Revision: 8108 $");
   }
 
+  @Override
   public Capabilities getCapabilities() {
     Capabilities result = super.getCapabilities();
     result.disableAll();
@@ -125,43 +129,46 @@ public class SmoteFilter
     return result;
   }
 
+  @Override
   public Enumeration listOptions() {
-    Vector newVector = new Vector();
-    newVector.addElement(new Option(
+    List<Option> newVector = new ArrayList<>();
+    newVector.add(new Option(
         "\tSpecifies the random number seed\n\t(default 1)",
         "S", 1, "-S <num>"));
-    newVector.addElement(new Option(
+    newVector.add(new Option(
         "\tSpecifies percentage of SMOTE instances to create.\n\t(default 100.0)\n",
         "P", 1, "-P <percentage>"));
-    newVector.addElement(new Option(
+    newVector.add(new Option(
         "\tSpecifies the number of nearest neighbors to use.\n\t(default 5)\n",
         "K", 1, "-K <nearest-neighbors>"));
-    newVector.addElement(new Option(
+    newVector.add(new Option(
         "\tSpecifies the index of the nominal class value to SMOTE\n\t(default 0: auto-detect non-empty minority class))\n",
         "C", 1, "-C <value-index>"));
-    return newVector.elements();
+    return Collections.enumeration(newVector);
   }
 
+  @Override
   public void setOptions(String[] options) throws Exception {
     String seedStr = Utils.getOption('S', options);
-    setRandomSeed(seedStr.length() != 0 ? Integer.parseInt(seedStr) : 1);
+    setRandomSeed(!seedStr.isEmpty() ? Integer.parseInt(seedStr) : 1);
 
     String percentageStr = Utils.getOption('P', options);
-    setPercentage(percentageStr.length() != 0 ? new Double(percentageStr).doubleValue() : 100.0);
+    setPercentage(!percentageStr.isEmpty() ? Double.parseDouble(percentageStr) : 100.0);
 
     String nnStr = Utils.getOption('K', options);
-    setNearestNeighbors(nnStr.length() != 0 ? Integer.parseInt(nnStr) : 5);
+    setNearestNeighbors(!nnStr.isEmpty() ? Integer.parseInt(nnStr) : 5);
 
     String classValueIndexStr = Utils.getOption('C', options);
-    if (classValueIndexStr.length() != 0) {
+    if (!classValueIndexStr.isEmpty()) {
       setClassValue(classValueIndexStr);
     } else {
-      m_DetectMinorityClass = true;
+      detectMinorityClass = true;
     }
   }
 
+  @Override
   public String[] getOptions() {
-    Vector<String> result = new Vector<>();
+    List<String> result = new ArrayList<>();
     result.add("-C"); result.add(getClassValue());
     result.add("-K"); result.add("" + getNearestNeighbors());
     result.add("-P"); result.add("" + getPercentage());
@@ -170,39 +177,41 @@ public class SmoteFilter
   }
 
   public String randomSeedTipText()      { return "The seed used for random sampling."; }
-  public int    getRandomSeed()          { return m_RandomSeed; }
-  public void   setRandomSeed(int value) { m_RandomSeed = value; }
+  public int    getRandomSeed()          { return randomSeed; }
+  public void   setRandomSeed(int value) { randomSeed = value; }
 
   public String percentageTipText() { return "The percentage of SMOTE instances to create."; }
-  public double getPercentage()     { return m_Percentage; }
+  public double getPercentage()     { return percentage; }
   public void   setPercentage(double value) {
-    if (value >= 0) m_Percentage = value;
-    else System.err.println("Percentage must be >= 0!");
+    if (value >= 0) percentage = value;
+    else log.warn("Percentage must be >= 0!");
   }
 
   public String nearestNeighborsTipText()      { return "The number of nearest neighbors to use."; }
-  public int    getNearestNeighbors()           { return m_NearestNeighbors; }
+  public int    getNearestNeighbors()           { return nearestNeighbors; }
   public void   setNearestNeighbors(int value) {
-    if (value >= 1) m_NearestNeighbors = value;
-    else System.err.println("At least 1 neighbor necessary!");
+    if (value >= 1) nearestNeighbors = value;
+    else log.warn("At least 1 neighbor necessary!");
   }
 
   public String classValueTipText() {
     return "The index of the class value to which SMOTE should be applied. "
         + "Use a value of 0 to auto-detect the non-empty minority class.";
   }
-  public String getClassValue() { return m_ClassValueIndex; }
+  public String getClassValue() { return classValueIndex; }
   public void   setClassValue(String value) {
-    m_ClassValueIndex = value;
-    m_DetectMinorityClass = m_ClassValueIndex.equals("0");
+    classValueIndex = value;
+    detectMinorityClass = classValueIndex.equals("0");
   }
 
+  @Override
   public boolean setInputFormat(Instances instanceInfo) throws Exception {
     super.setInputFormat(instanceInfo);
     super.setOutputFormat(instanceInfo);
     return true;
   }
 
+  @Override
   public boolean input(Instance instance) {
     if (getInputFormat() == null)
       throw new IllegalStateException("No input instance format defined");
@@ -219,6 +228,7 @@ public class SmoteFilter
     }
   }
 
+  @Override
   public boolean batchFinished() throws Exception {
     if (getInputFormat() == null)
       throw new IllegalStateException("No input instance format defined");
@@ -231,177 +241,213 @@ public class SmoteFilter
     return (numPendingOutput() != 0);
   }
 
-  protected void doSMOTE() throws Exception {
+  protected void doSMOTE() {
+    int[] minority = resolveMinority();
+    int minIndex = minority[0];
+    int minCount = minority[1];
+    int knn = adjustNearestNeighbors(minCount);
+    Instances sample = collectMinoritySample(minIndex);
+    Map vdmMap = buildVdmMap();
+    Random rand = new Random(randomSeed);
+    Set extraIndexSet = buildExtraIndexSet(sample, rand);
+    synthesize(sample, vdmMap, knn, minIndex, rand, extraIndexSet);
+  }
+
+  private int[] resolveMinority() {
+    if (detectMinorityClass) {
+      return findSmallestNonEmptyClass();
+    }
+    return new int[]{parseManualClassIndex(), Integer.MAX_VALUE};
+  }
+
+  private int[] findSmallestNonEmptyClass() {
+    int[] classCounts = getInputFormat().attributeStats(getInputFormat().classIndex()).nominalCounts;
     int minIndex = 0;
     int min = Integer.MAX_VALUE;
-    if (m_DetectMinorityClass) {
-      int[] classCounts = getInputFormat().attributeStats(getInputFormat().classIndex()).nominalCounts;
-      for (int i = 0; i < classCounts.length; i++) {
-        if (classCounts[i] != 0 && classCounts[i] < min) {
-          min = classCounts[i];
-          minIndex = i;
-        }
+    for (int i = 0; i < classCounts.length; i++) {
+      if (classCounts[i] != 0 && classCounts[i] < min) {
+        min = classCounts[i];
+        minIndex = i;
       }
-    } else {
-      String classVal = getClassValue();
-      if (classVal.equalsIgnoreCase("first")) {
-        minIndex = 1;
-      } else if (classVal.equalsIgnoreCase("last")) {
-        minIndex = getInputFormat().numClasses();
-      } else {
-        minIndex = Integer.parseInt(classVal);
-      }
-      if (minIndex > getInputFormat().numClasses())
-        throw new Exception("value index must be <= the number of classes");
-      minIndex--;
     }
+    return new int[]{minIndex, min};
+  }
 
-    int nearestNeighbors;
-    if (min <= getNearestNeighbors()) {
-      nearestNeighbors = min - 1;
-    } else {
-      nearestNeighbors = getNearestNeighbors();
-    }
-    if (nearestNeighbors < 1)
-      throw new Exception("Cannot use 0 neighbors!");
+  private int parseManualClassIndex() {
+    String classVal = getClassValue();
+    if (classVal.equalsIgnoreCase("first")) return 1;
+    if (classVal.equalsIgnoreCase("last")) return getInputFormat().numClasses();
+    int idx = Integer.parseInt(classVal);
+    if (idx > getInputFormat().numClasses())
+      throw new IllegalArgumentException("value index must be <= the number of classes");
+    return idx - 1;
+  }
 
+  private int adjustNearestNeighbors(int minCount) {
+    int adjusted = minCount <= nearestNeighbors ? minCount - 1 : nearestNeighbors;
+    if (adjusted < 1)
+      throw new IllegalStateException("Cannot use 0 neighbors!");
+    return adjusted;
+  }
+
+  private Instances collectMinoritySample(int minIndex) {
     Instances sample = getInputFormat().stringFreeStructure();
     Enumeration instanceEnum = getInputFormat().enumerateInstances();
     while (instanceEnum.hasMoreElements()) {
       Instance instance = (Instance) instanceEnum.nextElement();
       push((Instance) instance.copy());
-      if ((int) instance.classValue() == minIndex)
+      if ((int) instance.classValue() == minIndex) {
         sample.add(instance);
+      }
     }
+    return sample;
+  }
 
+  private Map buildVdmMap() {
     Map vdmMap = new HashMap();
     Enumeration attrEnum = getInputFormat().enumerateAttributes();
     while (attrEnum.hasMoreElements()) {
       Attribute attr = (Attribute) attrEnum.nextElement();
-      if (!attr.equals(getInputFormat().classAttribute())) {
-        if (attr.isNominal() || attr.isString()) {
-          double[][] vdm = new double[attr.numValues()][attr.numValues()];
-          vdmMap.put(attr, vdm);
-          int[] featureValueCounts = new int[attr.numValues()];
-          int[][] featureValueCountsByClass = new int[getInputFormat().classAttribute().numValues()][attr.numValues()];
-          instanceEnum = getInputFormat().enumerateInstances();
-          while (instanceEnum.hasMoreElements()) {
-            Instance instance = (Instance) instanceEnum.nextElement();
-            int value = (int) instance.value(attr);
-            int classValue = (int) instance.classValue();
-            featureValueCounts[value]++;
-            featureValueCountsByClass[classValue][value]++;
-          }
-          for (int v1 = 0; v1 < attr.numValues(); v1++) {
-            for (int v2 = 0; v2 < attr.numValues(); v2++) {
-              double sum = 0;
-              for (int c = 0; c < getInputFormat().numClasses(); c++) {
-                double c1i = featureValueCountsByClass[c][v1];
-                double c2i = featureValueCountsByClass[c][v2];
-                double c1  = featureValueCounts[v1];
-                double c2  = featureValueCounts[v2];
-                sum += Math.abs(c1i / c1 - c2i / c2);
-              }
-              vdm[v1][v2] = sum;
-            }
-          }
-        }
+      if (!attr.equals(getInputFormat().classAttribute()) && (attr.isNominal() || attr.isString())) {
+        vdmMap.put(attr, computeVdm(attr));
       }
     }
+    return vdmMap;
+  }
 
-    Random rand = new Random(getRandomSeed());
+  private double[][] computeVdm(Attribute attr) {
+    double[][] vdm = new double[attr.numValues()][attr.numValues()];
+    int[] featureValueCounts = new int[attr.numValues()];
+    int[][] featureValueCountsByClass =
+        new int[getInputFormat().classAttribute().numValues()][attr.numValues()];
+    Enumeration instanceEnum = getInputFormat().enumerateInstances();
+    while (instanceEnum.hasMoreElements()) {
+      Instance instance = (Instance) instanceEnum.nextElement();
+      int value = (int) instance.value(attr);
+      featureValueCounts[value]++;
+      featureValueCountsByClass[(int) instance.classValue()][value]++;
+    }
+    for (int v1 = 0; v1 < attr.numValues(); v1++) {
+      for (int v2 = 0; v2 < attr.numValues(); v2++) {
+        vdm[v1][v2] = computeVdmCell(v1, v2, featureValueCounts, featureValueCountsByClass);
+      }
+    }
+    return vdm;
+  }
 
-    List extraIndices = new LinkedList();
-    double percentageRemainder = (getPercentage() / 100) - Math.floor(getPercentage() / 100.0);
-    int extraIndicesCount = (int) (percentageRemainder * sample.numInstances());
-    if (extraIndicesCount >= 1) {
-      for (int i = 0; i < sample.numInstances(); i++)
+  private double computeVdmCell(int v1, int v2, int[] fvc, int[][] fvcByClass) {
+    double sum = 0;
+    for (int c = 0; c < getInputFormat().numClasses(); c++) {
+      sum += Math.abs(fvcByClass[c][v1] / (double) fvc[v1] - fvcByClass[c][v2] / (double) fvc[v2]);
+    }
+    return sum;
+  }
+
+  private Set buildExtraIndexSet(Instances sample, Random rand) {
+    List extraIndices = new ArrayList();
+    double remainder = (getPercentage() / 100) - Math.floor(getPercentage() / 100.0);
+    int extraCount = (int) (remainder * sample.numInstances());
+    if (extraCount >= 1) {
+      for (int i = 0; i < sample.numInstances(); i++) {
         extraIndices.add(i);
+      }
     }
     Collections.shuffle(extraIndices, rand);
-    extraIndices = extraIndices.subList(0, extraIndicesCount);
-    Set extraIndexSet = new HashSet(extraIndices);
+    extraIndices = extraIndices.subList(0, extraCount);
+    return new HashSet(extraIndices);
+  }
 
-    Instance[] nnArray = new Instance[nearestNeighbors];
+  private void synthesize(Instances sample, Map vdmMap, int knn,
+                           int minIndex, Random rand, Set extraIndexSet) {
+    Instance[] nnArray = new Instance[knn];
     for (int i = 0; i < sample.numInstances(); i++) {
       Instance instanceI = sample.instance(i);
-
-      List distanceToInstance = new LinkedList();
-      for (int j = 0; j < sample.numInstances(); j++) {
-        Instance instanceJ = sample.instance(j);
-        if (i != j) {
-          double distance = 0;
-          attrEnum = getInputFormat().enumerateAttributes();
-          while (attrEnum.hasMoreElements()) {
-            Attribute attr = (Attribute) attrEnum.nextElement();
-            if (!attr.equals(getInputFormat().classAttribute())) {
-              double iVal = instanceI.value(attr);
-              double jVal = instanceJ.value(attr);
-              if (attr.isNumeric()) {
-                distance += Math.pow(iVal - jVal, 2);
-              } else {
-                distance += ((double[][]) vdmMap.get(attr))[(int) iVal][(int) jVal];
-              }
-            }
-          }
-          distance = Math.pow(distance, .5);
-          distanceToInstance.add(new Object[]{distance, instanceJ});
-        }
-      }
-
-      Collections.sort(distanceToInstance, new Comparator() {
-        public int compare(Object o1, Object o2) {
-          double d1 = (Double) ((Object[]) o1)[0];
-          double d2 = (Double) ((Object[]) o2)[0];
-          return Double.compare(d1, d2);
-        }
-      });
-
-      Iterator entryIterator = distanceToInstance.iterator();
-      int j = 0;
-      while (entryIterator.hasNext() && j < nearestNeighbors) {
-        nnArray[j] = (Instance) ((Object[]) entryIterator.next())[1];
-        j++;
-      }
-
+      findNearestNeighbors(sample, i, instanceI, vdmMap, knn, nnArray);
       int n = (int) Math.floor(getPercentage() / 100);
       while (n > 0 || extraIndexSet.remove(i)) {
-        double[] values = new double[sample.numAttributes()];
-        int nn = rand.nextInt(nearestNeighbors);
-        attrEnum = getInputFormat().enumerateAttributes();
-        while (attrEnum.hasMoreElements()) {
-          Attribute attr = (Attribute) attrEnum.nextElement();
-          if (!attr.equals(getInputFormat().classAttribute())) {
-            if (attr.isNumeric()) {
-              double dif = nnArray[nn].value(attr) - instanceI.value(attr);
-              double gap = rand.nextDouble();
-              values[attr.index()] = instanceI.value(attr) + gap * dif;
-            } else if (attr.isDate()) {
-              double dif = nnArray[nn].value(attr) - instanceI.value(attr);
-              double gap = rand.nextDouble();
-              values[attr.index()] = (long) (instanceI.value(attr) + gap * dif);
-            } else {
-              int[] valueCounts = new int[attr.numValues()];
-              valueCounts[(int) instanceI.value(attr)]++;
-              for (int nnEx = 0; nnEx < nearestNeighbors; nnEx++)
-                valueCounts[(int) nnArray[nnEx].value(attr)]++;
-              int maxIndex = 0;
-              int max = Integer.MIN_VALUE;
-              for (int index = 0; index < attr.numValues(); index++) {
-                if (valueCounts[index] > max) {
-                  max = valueCounts[index];
-                  maxIndex = index;
-                }
-              }
-              values[attr.index()] = maxIndex;
-            }
-          }
-        }
-        values[sample.classIndex()] = minIndex;
-        push(new DenseInstance(1.0, values));
+        push(createSyntheticInstance(instanceI, nnArray, knn, rand, sample, minIndex));
         n--;
       }
     }
+  }
+
+  private void findNearestNeighbors(Instances sample, int skipIndex, Instance instanceI,
+                                     Map vdmMap, int k, Instance[] nnArray) {
+    List distanceToInstance = new ArrayList();
+    for (int j = 0; j < sample.numInstances(); j++) {
+      if (j != skipIndex) {
+        double distance = computeDistance(instanceI, sample.instance(j), vdmMap);
+        distanceToInstance.add(new Object[]{distance, sample.instance(j)});
+      }
+    }
+    distanceToInstance.sort((o1, o2) ->
+        Double.compare((Double) ((Object[]) o1)[0], (Double) ((Object[]) o2)[0]));
+    for (int j = 0; j < k; j++) {
+      nnArray[j] = (Instance) ((Object[]) distanceToInstance.get(j))[1];
+    }
+  }
+
+  private double computeDistance(Instance instanceI, Instance instanceJ, Map vdmMap) {
+    double distance = 0;
+    Enumeration attrEnum = getInputFormat().enumerateAttributes();
+    while (attrEnum.hasMoreElements()) {
+      Attribute attr = (Attribute) attrEnum.nextElement();
+      if (!attr.equals(getInputFormat().classAttribute())) {
+        double iVal = instanceI.value(attr);
+        double jVal = instanceJ.value(attr);
+        if (attr.isNumeric()) {
+          distance += Math.pow(iVal - jVal, 2);
+        } else {
+          distance += ((double[][]) vdmMap.get(attr))[(int) iVal][(int) jVal];
+        }
+      }
+    }
+    return Math.pow(distance, .5);
+  }
+
+  private DenseInstance createSyntheticInstance(Instance instanceI, Instance[] nnArray,
+                                                  int knn, Random rand,
+                                                  Instances sample, int minIndex) {
+    double[] values = new double[sample.numAttributes()];
+    int nn = rand.nextInt(knn);
+    Enumeration attrEnum = getInputFormat().enumerateAttributes();
+    while (attrEnum.hasMoreElements()) {
+      Attribute attr = (Attribute) attrEnum.nextElement();
+      if (!attr.equals(getInputFormat().classAttribute())) {
+        values[attr.index()] = computeAttributeValue(instanceI, nnArray[nn], nnArray, knn, attr, rand);
+      }
+    }
+    values[sample.classIndex()] = minIndex;
+    return new DenseInstance(1.0, values);
+  }
+
+  private double computeAttributeValue(Instance instanceI, Instance nn, Instance[] nnArray,
+                                        int knn, Attribute attr, Random rand) {
+    if (attr.isNumeric()) {
+      return instanceI.value(attr) + rand.nextDouble() * (nn.value(attr) - instanceI.value(attr));
+    }
+    if (attr.isDate()) {
+      double interpolated = instanceI.value(attr) + rand.nextDouble() * (nn.value(attr) - instanceI.value(attr));
+      return (long) interpolated;
+    }
+    return computeNominalValue(instanceI, nnArray, knn, attr);
+  }
+
+  private double computeNominalValue(Instance instanceI, Instance[] nnArray, int knn, Attribute attr) {
+    int[] valueCounts = new int[attr.numValues()];
+    valueCounts[(int) instanceI.value(attr)]++;
+    for (int nnEx = 0; nnEx < knn; nnEx++) {
+      valueCounts[(int) nnArray[nnEx].value(attr)]++;
+    }
+    int maxIndex = 0;
+    int max = Integer.MIN_VALUE;
+    for (int index = 0; index < attr.numValues(); index++) {
+      if (valueCounts[index] > max) {
+        max = valueCounts[index];
+        maxIndex = index;
+      }
+    }
+    return maxIndex;
   }
 
   public static void main(String[] args) {
