@@ -1,0 +1,54 @@
+\subsection{Milestone 3 -- Analisi controfattuale dell'impatto dei code smell}
+
+La Milestone 3 risponde alla domanda: \textit{quante classi buggy avrebbero potuto essere
+prevenute se non avessero avuto code smell?}
+
+\subsubsection{Scelta del classificatore migliore (BClassifier)}
+
+Sulla base dei risultati di M2, il classificatore migliore per uso generale è
+\textbf{RF + No FS + SMOTE}: Kappa massimo ($0{,}61$), AUC e NPofB20 massimi ($0{,}94$,
+$0{,}88$), equilibrio sostenibile tra Precision ($0{,}63$) e Recall ($0{,}66$).
+
+\subsubsection{Costruzione dei dataset}
+
+Dal dataset \textbf{A} (15.338 snapshot, 19 metriche, etichetta isBuggy) vengono derivati
+tre dataset usando la metrica \texttt{Previous\_Release\_Code\_Smells} (NSmells):
+\begin{itemize}[noitemsep]
+  \item \textbf{B+}: istanze con NSmells $> 0$ (12.792 istanze, 83,4\% del totale).
+  \item \textbf{C}: istanze con NSmells $= 0$ (2.546 istanze, 16,6\%).
+  \item \textbf{B}: copia identica di B+ con NSmells forzato a 0 --- il controfattuale: ``come sarebbe B+ se le classi non avessero smell nella release precedente?''
+\end{itemize}
+
+\subsubsection{Training e predizione}
+
+BClassifier è addestrato sull'intero A (\texttt{buildClassifier(A)}), con SMOTE applicato
+internamente da \texttt{FilteredClassifier} solo sul training. BClassifierA predice A, B+,
+B e C; il confronto istanza per istanza tra B+ e B isola l'effetto dell'azzeramento di NSmells.
+
+\subsubsection{Metriche di prevenzione}
+
+Un'istanza è \textit{prevenuta} se BClassifierA la predice BUGGY su B+ e CLEAN su B.
+Tre metriche quantificano la prevenzione:
+\begin{itemize}[noitemsep]
+  \item \textbf{Prevented\_Total}: numero assoluto di istanze prevenute.
+  \item \textbf{Prevented\_Proportion}: Prevented\_Total / Actual\_Buggy\_in\_A.
+  \item \textbf{Prevented\_Of\_Predictable}: Prevented\_Total / Predicted\_Buggy\_in\_B+.
+\end{itemize}
+
+\subsubsection{Analisi di ridondanza: correlazione e ablation study (M3.1)}
+
+Due analisi supplementari spiegano empiricamente \textit{perché} l'impatto di NSmells
+è basso.
+
+\paragraph{Correlazione di Spearman.}
+Per ogni feature (escluse NSmells e isBuggy) viene calcolata la correlazione $\rho$ di
+Spearman con NSmells. Spearman opera sui ranghi senza richiedere normalità --- cruciale per
+le distribuzioni asimmetriche delle metriche di codice. Questa è una correlazione
+\textit{feature--feature}, distinta dalla FS di M2 (feature--classe): l'obiettivo non è
+identificare feature poco predittive, ma quantificare la ridondanza informativa di NSmells.
+
+\paragraph{Ablation study.}
+10$\times$10-fold CV con RF + No FS + SMOTE su A a 19 feature e su A a 18 feature (senza
+NSmells). Il $\Delta$ misura il contributo \textit{marginale} di NSmells. La CV è
+necessaria --- l'addestramento completo su A farebbe memorizzare il training set a RF,
+rendendo il $\Delta$ privo di significato.

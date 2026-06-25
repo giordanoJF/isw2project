@@ -14,6 +14,7 @@ public class AppConfig {
     private MetricsConfig metrics;
     private ClassifierConfig classifier;
     private WhatIfConfig whatif;
+    private RefactoringConfig refactoring = new RefactoringConfig();
 
     public CsvConfig getCsv()           { return csv; }
     public void setCsv(CsvConfig csv)   { this.csv = csv; }
@@ -35,4 +36,7 @@ public class AppConfig {
 
     public WhatIfConfig getWhatif()                { return whatif; }
     public void setWhatif(WhatIfConfig whatif)     { this.whatif = whatif; }
+
+    public RefactoringConfig getRefactoring()                    { return refactoring; }
+    public void setRefactoring(RefactoringConfig refactoring)    { this.refactoring = refactoring; }
 }

@@ -1,0 +1,23 @@
+\subsection{Milestone 4 -- Refactoring automatizzato}
+
+La Milestone 4 caratterizza l'efficacia del refactoring automatizzato via LLM su classi
+Java di OpenJPA, articolata in selezione delle classi target (Step~8) e produzione
+iterativa di versioni refactored con test progressivamente più stringenti (Step~9,
+Tabella~\ref{tab:m4-versions}).
+
+\subsubsection{Selezione delle classi (Step 8)}
+
+Tutte le classi Java di produzione dell'ultima release disponibile nel repository
+Git (\texttt{4.1.1}) vengono analizzate con PMD 7.7.0 (stessi ruleset di M1) per
+contare le violazioni (\emph{Nsmells}). Le classi con LOC $< 100$ sono escluse;
+le restanti 819 vengono ordinate per Nsmells decrescente. La selezione segue la formula
+del docente: $G \Rightarrow 7 \bmod 5 = 2$, caso~2 $\Rightarrow$ rank~$3$ e rank~$817$
+su $N = 819$ (Tabella~\ref{tab:m4-selected}).
+
+\subsubsection{Refactoring automatizzato (Step 9)}
+
+Per ogni classe si produce la sequenza $C_0 \!\to\! C_1 \!\to\! C_2 \!\to\! C_3
+\!\to\! C_4$ (Tabella~\ref{tab:m4-versions}) fornendo all'LLM il codice originale,
+le diagnostiche SonarCloud e i test scritti dallo studente in modo incrementale.
+Il prompt impone: rimozione degli smell indicati senza alterare la funzionalità,
+superamento dei test forniti, nessuna modifica aggiuntiva, compatibilità con il sistema.

@@ -126,3 +126,13 @@ whatif:
   bestFs: "NONE"
   bestBalancing: "SMOTE"
   smellsColumn: "Previous_Release_Code_Smells"
+
+refactoring:
+  outputDir: "output/milestone4"
+  extractedSourceDir: "output/milestone4/source"
+  lastRelease: "4.1.1"
+  # Classes with LOC < this threshold are excluded as "too small".
+  smallClassLocThreshold: 100
+  # Selection formula: first name Giordano -> G = 7th letter -> X = 7 mod 5 = 2
+  # Case 2: select class at rank (X+1) and class at rank (N-X).
+  selectionX: 2

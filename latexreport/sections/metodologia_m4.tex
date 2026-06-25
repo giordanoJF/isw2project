@@ -1,4 +1,72 @@
-\subsection{Milestone 4 -- Refactoring automatico}
+\subsection{Milestone 4 -- Refactoring automatizzato}
 
-% TODO: descrivere il prompt utilizzato, le classi fornite come input,
-% le condizioni di disponibilità di test e la strategia di valutazione.
+La Milestone 4 caratterizza l'efficacia del refactoring automatizzato assistito da LLM
+su classi Java di Apache OpenJPA. Il processo si articola in due fasi: selezione delle
+classi target (Step~8) e produzione iterativa di versioni refactored con vincoli di test
+progressivamente più stringenti (Step~9).
+
+\subsubsection{Selezione delle classi (Step 8)}
+
+L'analisi si concentra sull'ultima release disponibile nel repository Git di Apache
+OpenJPA (\texttt{4.1.1}), la release più recente al momento dell'analisi.
+
+\paragraph{Analisi PMD}
+
+Tutte le classi Java di produzione della release vengono analizzate con PMD 7.7.0
+tramite gli stessi quattro ruleset adottati in Milestone 1
+(\texttt{bestpractices}, \texttt{design}, \texttt{errorprone}, \texttt{codestyle}).
+Per ogni classe viene contato il numero totale di violazioni (\textbf{Nsmells}).
+Le classi di test (\texttt{/test/}, \texttt{Test.java}, \texttt{Tests.java}) sono
+escluse tramite lo stesso filtro di produzione usato in M1 (\texttt{JavaClassFilterService}).
+
+\paragraph{Filtro classi piccole}
+
+Le classi con LOC $< 100$ sono rimosse dall'elenco: classi troppo piccole presentano
+pochi metodi e opportunità di refactoring trascurabili.
+
+\paragraph{Formula di selezione}
+
+Le classi rimanenti sono ordinate per Nsmells decrescente. La selezione
+avviene tramite la formula fornita dal docente:
+
+\begin{enumerate}
+  \item Prima lettera del nome: \texttt{G} (Giordano) $\Rightarrow$ numero = 7
+  \item $X = 7 \bmod 5 = 2$
+  \item Caso 2: si selezionano le classi a rank $1{+}X = 3$ e $N{-}X = N{-}2$
+\end{enumerate}
+
+dove $N$ è la dimensione dell'elenco filtrato.
+
+\subsubsection{Refactoring automatizzato (Step 9)}
+
+Per ogni classe selezionata viene prodotta una sequenza di versioni refactored
+($C_1$, $C_2$, $C_3$, $C_4$) tramite un LLM. Il prompt specifica di:
+
+\begin{enumerate}
+  \item rimuovere i code smell identificati da SonarCloud senza alterare la funzionalità;
+  \item superare i test forniti;
+  \item non introdurre modifiche diverse da quelle richieste;
+  \item garantire la compatibilità con il resto del sistema.
+\end{enumerate}
+
+Ogni versione aggiunge un livello di test al prompt, come mostrato in
+Tabella~\ref{tab:m4-versions}. Al momento della stesura è disponibile solo $C_1$
+(senza test); $C_2$--$C_4$ saranno prodotti non appena i test saranno scritti.
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Versione} & \textbf{Tipo} & \textbf{Test inclusi nel prompt} \\
+\midrule
+$C_0$ & Originale  & N/A \\
+$C_1$ & Refactored & nessuno \\
+$C_2$ & Refactored & Test Black Box (BB) \\
+$C_3$ & Refactored & BB + Test Control Flow (CF) \\
+$C_4$ & Refactored & BB + CF + Mutation Testing (MT) \\
+\bottomrule
+\end{tabular}
+\caption{Sequenza di versioni refactored con test progressivi.}
+\label{tab:m4-versions}
+\end{table}

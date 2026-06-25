@@ -1,0 +1,91 @@
+\subsection{Milestone 3 -- Risultati dell'analisi controfattuale}
+
+\subsubsection{Dataset e predizioni}
+
+La Tabella~\ref{tab:r3-datasets} riporta il numero di istanze e i bug predetti per ciascun
+dataset. Le predizioni su A, B+ e C sono in-campione (BClassifierA addestrato su A): il
+bias agisce in modo identico su B+ e B, cancellandosi nel confronto che costituisce il cuore
+dell'analisi. Le predizioni su A non sono confrontabili con le metriche di M2 (fuori-campione).
+
+\subsubsection{Metriche di prevenzione}
+
+I risultati sono riportati in Tabella~\ref{tab:r3-prevention}.
+
+Su 1.125 classi predette buggy in B+, solo \textbf{63} (5,60\%) smetterebbero di essere
+predette buggy se i code smell fossero zero. Un dato inatteso: B predice \textbf{1.137}
+bug contro le 1.125 di B+ ($+12$ netto). L'azzeramento degli smell genera 63 istanze
+prevenute (BUGGY $\to$ CLEAN) ma anche 75 istanze nella direzione opposta (CLEAN $\to$
+BUGGY), confermando il ruolo marginale e bidirezionale di NSmells nel modello.
+
+\subsubsection{Confronto con il paper di riferimento}
+
+Il paper presentato a lezione (\textit{``What If I Had No Smells?''}, Falessi) riporta
+una riduzione del \textbf{42\%} dei file difettosi predetti passando da B+ a B, contro
+il nostro 5,60\%. La metodologia è identica (A/B+/B/C, stesso criterio, modello addestrato
+su A); le differenze risiedono nel contesto sperimentale:
+
+\begin{enumerate}
+
+\item \textbf{Strumento e ruleset.} Il paper usa \textbf{SonarQube} con 1.297 tipi di
+smell architetturali (God Class, Long Method, Feature Envy). Il presente studio usa
+\textbf{PMD} con 4 ruleset, di cui \texttt{codestyle} rileva violazioni di stile puro
+(naming, parentesi graffe, import superflui) che crescono \textit{linearmente} con la
+dimensione del file. Questo introduce una correlazione artificiale tra NSmells e LOC, che
+si propaga alle metriche di processo cumulative (LOC\_Touched, Churn, NR), riducendo
+l'indipendenza informativa di NSmells.
+
+\item \textbf{Contributo marginale di NSmells.} Nel paper, NSmells presenta correlazione
+quasi nulla con LOC\_touched ($-0{,}01$), NR ($0{,}02$): gli smell sono \textit{indipendenti}
+dalle metriche di processo e il loro contributo al modello è aggiuntivo. Nel presente
+studio (Tabella~\ref{tab:r3-correlation}), NSmells correla $\rho = 0{,}78$ con LOC,
+$\rho > 0{,}65$ con Churn, LOC\_Touched, Weighted\_Age. RandomForest ha già ``spiegato''
+la quasi totalità della varianza di isBuggy tramite le metriche di processo; NSmells non
+aggiunge informazione indipendente. È il contributo \textit{marginale} --- non la
+correlazione individuale con isBuggy --- che il what-if misura, ed è quasi zero.
+
+\item \textbf{Contesto.} Il paper usa 135 file industriali (Keymind); il presente studio usa
+15.338 snapshot open source con alto turnover. In contesti industriali il churn è più basso
+e gli smell diventano relativamente più informativi.
+
+\item \textbf{Sfasamento temporale.} Il paper misura NSmells \textit{just before the first
+revision}; il presente studio usa la release precedente, diluendo il segnale se il codice
+è cambiato significativamente tra release consecutive.
+
+\end{enumerate}
+
+Avvicinare i risultati al paper richiederebbe: rimozione di \texttt{codestyle.xml}, uso di
+ruleset meno dimensione-dipendenti, o sostituzione di PMD con SonarQube per smell architetturali.
+
+\subsubsection{Analisi di ridondanza (M3.1)}
+
+\paragraph{Correlazione di Spearman.}
+Sei feature su 18 presentano $\rho > 0{,}60$ con NSmells: LOC ($0{,}78$), Max\_Churn
+($0{,}71$), LOC\_Touched ($0{,}69$), Churn ($0{,}69$), Weighted\_Age ($0{,}69$),
+Max\_LOC\_Added ($0{,}66$). Il risultato è coerente con il meccanismo PMD codestyle:
+le violazioni di stile crescono proporzionalmente alla dimensione del file, assorbite
+già dalle metriche di processo. Le uniche feature con bassa correlazione verso NSmells
+sono EXP ($0{,}04$) e SEXP ($0{,}13$), che misurano l'esperienza dell'autore e sono
+indipendenti dalla dimensione del file.
+
+\paragraph{Ablation study.}
+La Tabella~\ref{tab:r3-ablation} confronta le prestazioni di RF + No FS + SMOTE con e
+senza NSmells in 10$\times$10-fold CV su A. Il $\Delta$ è essenzialmente zero su tutte
+le metriche. Rimuovere NSmells produce addirittura un lieve \textit{miglioramento} di
+Precision ($+0{,}004$) e Kappa ($+0{,}002$): quando una feature è collineare con altre,
+il modello può usarla in modo rumoroso; rimuoverla riduce marginalmente questo rumore.
+I valori della configurazione completa (Kappa $0{,}608$, AUC $0{,}942$) sono coerenti
+con M2 (Kappa $0{,}61$, AUC $0{,}94$): la CV è riproducibile.
+
+\paragraph{Sintesi M3.1.}
+NSmells correla fortemente con le metriche di processo ($\rho$ fino a $0{,}78$ con LOC)
+\textit{e} rimuoverla non degrada il modello ($\Delta \approx 0$). Insieme, queste evidenze
+dimostrano empiricamente che il basso impatto del what-if (5,60\%) non dipende da un
+modello poco accurato, ma dalla ridondanza informativa di NSmells rispetto alle metriche
+di processo già presenti nel dataset. Il principale driver di bugginess in Apache OpenJPA
+è la storia di modifica del codice, non la qualità strutturale misurata tramite PMD.
+
+\paragraph{Risposta alle domande dell'assignment.}
+\textit{``BClassifier è accurato?''} --- Sì: Precision $0{,}63$, Recall $0{,}66$,
+AUC $0{,}94$, Kappa $0{,}61$ (da M2, fuori campione).
+\textit{``Quante classi buggy avrebbero potuto essere prevenute?''} --- 63 in totale
+(4,57\% dei bug reali), pari al 5,60\% dei bug predetti in B+.

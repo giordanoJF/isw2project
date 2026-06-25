@@ -1,0 +1,129 @@
+\subsection{Milestone 2 -- Identificazione di modelli accurati}
+
+La Milestone 2 valuta comparativamente classificatori per la predizione della bugginess
+di classi Java, leggendo il CSV prodotto da M1 senza rieseguire la pipeline. Per ogni
+combinazione di classificatore, feature selection e balancing viene stimata la performance
+tramite 10-times 10-fold cross-validation.
+
+\subsubsection{Classificatori}
+
+Sono stati scelti tre classificatori con approcci radicalmente diversi (confronto in
+Tabella~\ref{tab:m2-classifiers}): \textbf{RandomForest} (ensemble di 100 alberi con
+$\sqrt{m}$ feature per split), \textbf{NaiveBayes} (probabilistico con assunzione di
+indipendenza condizionale --- quasi sempre violata su questo dataset) e \textbf{IBk}
+(k-NN, $k=1$, lazy learner). Questa diversità permette di isolare quali caratteristiche
+del modello contano su questo problema. L'output di ogni classificatore è una distribuzione
+di probabilità, necessaria per AUC e NPofB20.
+
+\subsubsection{Feature Selection}
+
+La feature selection (FS) identifica il sottoinsieme di attributi più informativo.
+Molte delle 19 feature sono ridondanti (\texttt{LOC\_Touched}, \texttt{LOC\_Added},
+\texttt{Churn} misurano varianti della stessa grandezza), con effetti diversificati:
+NaiveBayes viola l'assunzione di indipendenza condizionale, IBk soffre della maledizione
+della dimensionalità, RandomForest è relativamente robusto per via della selezione casuale
+interna. Il vantaggio principale della FS non è necessariamente migliorare le prestazioni,
+bensì mantenere performance simili con meno feature (velocità, interpretabilità, costi di
+manutenzione).
+
+Cinque metodi: \textbf{NONE} (baseline); \textbf{InfoGain} ($H(C) - H(C|A)$, con
+\texttt{Ranker(threshold=0.0)}); \textbf{Spearman} (correlazione monotona sui ranghi,
+robusta per distribuzioni skewed; \texttt{SpearmanAttributeEval} custom, poiché
+\texttt{weka-stable} include solo Pearson); \textbf{ForwardSearch} e \textbf{BackwardSearch}
+(\texttt{WrapperSubsetEval(NaiveBayes)} + \texttt{GreedyStepwise}, disabilitati di default
+per i tempi: 1--3 ore per combinazione per via della CV interna su ogni subset candidato).
+
+\subsubsection{Bilanciamento delle classi}
+
+Con $\approx$9\% di istanze buggy, un classificatore che predice sempre ``non buggy''
+ottiene $\approx$91\% di accuracy. Il balancing impedisce questa scorciatoia
+applicandosi \textbf{esclusivamente sul training fold}. Quattro strategie:
+\textbf{NONE} (baseline, distribuzione originale); \textbf{Undersampling}
+(\texttt{SpreadSubsample}: rimuove istanze dalla classe maggioritaria fino al rapporto
+1:1, riducendo il training dell'82\%); \textbf{Oversampling} (\texttt{Resample}:
+ricampiona con rimpiazzo verso distribuzione uniforme, senza scartare dati --- scelta
+rispetto alla duplicazione diretta perché \texttt{Resample} è l'unico filtro di
+oversampling supervisionato nel jar core di \texttt{weka-stable 3.8.6}); \textbf{SMOTE}
+(genera istanze sintetiche per interpolazione tra i $k=5$ vicini più prossimi di ogni
+istanza minority --- non disponibile in \texttt{weka-stable} né su Maven Central, incluso
+come re-package del sorgente ufficiale Weka 2008 \texttt{SmoteFilter}).
+
+\subsubsection{Prevenzione del data leakage: FilteredClassifier}
+
+Applicare balancing o feature selection sull'intero dataset \emph{prima} della
+cross-validation è un errore metodologico noto come \textit{data leakage}:
+le copie di oversampling e gli score di FS calcolati su tutto il dataset includono
+le label del test fold, producendo metriche artificialmente ottimistiche.
+
+La soluzione adottata è \texttt{FilteredClassifier} di Weka, che applica balancing e
+FS \textbf{internamente per ogni fold}: il filtro viene fittato sul training fold e
+applicato (senza re-fit) sul test fold. Il test fold non subisce mai né aggiunte sintetiche
+né rimozioni. L'ordine è: prima il balancing, poi la FS. Entrambi gli ordini sono usati
+in letteratura; quello adottato garantisce che la FS calcoli gli score su una distribuzione
+bilanciata, evitando che la sproporzione 9\%/91\% comprima la correlazione della classe
+minoritaria. Con soglia \texttt{threshold=0.0} la differenza pratica tra i due ordini è
+comunque trascurabile.
+
+\subsubsection{Validazione: 10-times 10-fold Cross-Validation}
+
+\paragraph{Motivazione.}
+Un singolo 10-fold CV produce una stima influenzata dalla divisione casuale dei fold.
+Ripetere 10 run con seed diversi riduce la varianza: le 100 valutazioni producono una
+stima stabile. Le predizioni accumulate su tutti i fold e run sono usate per calcolare
+le metriche finali, inclusa NPofB20 che richiede l'ordinamento globale di tutte le istanze.
+
+\paragraph{Temporalità e limitazione strutturale.}
+La 10$\times$10 CV assegna le istanze ai fold in modo casuale, senza rispettare l'ordine
+temporale delle release: il modello può addestrarsi su release più recenti di quelle nel
+test fold (\textit{temporal leakage}). Le metriche risultanti tendono a essere leggermente
+ottimistiche. La soluzione alternativa --- \textbf{Walk-Forward Validation} (addestramento
+sulle release passate, test sulla successiva) --- rispetta la temporalità ma produrrebbe
+al massimo 8--9 valutazioni su OpenJPA (11 release con snapshot), con alta varianza sulle
+prime iterazioni che addestrano su 1--2 release sole. La 10$\times$10 CV è il
+\textbf{compromesso standard} nella letteratura di bug prediction per dataset con poche
+versioni (tabella comparativa in Tabella~\ref{tab:m2-cv-vs-wf}); il temporal leakage è
+riconosciuto come limitazione nella sezione sulle minacce.
+
+\subsubsection{Metriche di valutazione}
+
+Tutte le metriche sono calcolate sulla \textbf{classe positiva} (buggy). L'accuracy
+non è inclusa: con il 9\% di buggy, un classificatore banale raggiunge $\approx$91\%.
+Le cinque metriche scelte coprono angolazioni complementari:
+
+\[
+\text{Precision} = \frac{TP}{TP+FP} \qquad \text{Recall} = \frac{TP}{TP+FN}
+\]
+\[
+\kappa = \frac{P_o - P_e}{1 - P_e} \qquad
+\text{NPofB20} = \frac{|\text{buggy nel top }20\%|}{|\text{buggy totali}|}
+\]
+
+Precision e Recall sono riportate \textbf{separatamente} invece di F1 perché collassarle
+nasconde informazioni diagnosticamente rilevanti: un F1 basso può derivare da Precision
+bassa (troppi falsi allarmi), da Recall bassa (troppi bug non trovati) o da entrambe.
+La priorità tra le due dipende dal contesto applicativo. AUC valuta la capacità di
+\textbf{ordinare} le istanze per rischio (threshold-free, $\text{AUC} = P(\text{score\_buggy}
+> \text{score\_non-buggy})$). Kappa corregge per l'accordo atteso per caso: con 9\% di buggy
+un classificatore sempre-``clean'' ha $\kappa \approx 0{,}07$ invece di accuracy 91\%.
+NPofB20 non è disponibile in Weka ed è calcolato da \texttt{NpofB20Service} che estrae le
+predizioni grezze da \texttt{Evaluation.predictions()}, le ordina per risk score decrescente
+e conta la quota di buggy nel primo 20\%.
+
+\subsubsection{Configurazione e parallelismo}
+
+Le 27 combinazioni default (3 clf $\times$ 3 FS $\times$ 3 bal, SMOTE e wrapper
+disabilitati) richiedono $\approx$35 minuti con 4 thread; il run completo a 60 combinazioni
+dura $\approx$1--3 ore (Tabella~\ref{tab:m2-runtime}). La pipeline supporta due livelli
+di parallelismo: a livello di combinazione (\texttt{ExecutorService}) e interno a
+RandomForest (\texttt{setNumExecutionSlots}). I due livelli si moltiplicano; il prodotto
+non deve superare i core fisici disponibili.
+
+\subsubsection{Note implementative}
+
+Scelte non ovvie: la pre-randomizzazione manuale è stata rimossa perché \texttt{crossValidateModel}
+applica il proprio shuffle (double-randomization fix); \texttt{WrapperSubsetEval} richiede
+\texttt{setOptions()} prima di \texttt{setClassifier()}, altrimenti azzera il classificatore
+a \texttt{ZeroR}; \texttt{Evaluation.precision()} restituisce \texttt{NaN} se la classe
+positiva non produce predizioni --- convertito a $0.0$ prima dell'accumulo; \texttt{SmoteFilter}
+è un re-package del sorgente Weka 2008, non disponibile su Maven Central né corretto per i
+code smell (codice non di proprietà).

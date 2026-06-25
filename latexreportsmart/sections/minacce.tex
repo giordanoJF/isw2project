@@ -1,0 +1,60 @@
+\section{Minacce alla validità}
+
+\subsection{Milestone 1}
+
+\paragraph{Linkage commit--ticket.}
+Il linkage avviene tramite la chiave del ticket nel messaggio di commit. I commit che
+correggono bug senza citare la chiave producono falsi negativi; quelli che la citano per
+altri motivi producono falsi positivi. Entrambe le direzioni distorcono il tasso di bugginess.
+
+\paragraph{Proportion e Fix Version come Affected Version.}
+Proportion introduce rumore; per ridurne il ricorso, i ticket privi di AV vengono arricchiti
+con le FV tranne l'ultima. Questa scelta introduce rumore simmetrico: alcune versioni
+potrebbero essere etichettate come affette da un bug quando non lo erano.
+
+\paragraph{Release senza tag Git.}
+Tre versioni Jira senza tag Git sono escluse, con possibile sottostima della bugginess
+nelle classi che avrebbero dovuto comparire in quelle release.
+
+\subsection{Milestone 2}
+
+\paragraph{Temporal leakage strutturale.}
+La 10$\times$10 CV assegna i fold casualmente senza rispettare l'ordine temporale: le
+metriche tendono a essere leggermente ottimistiche. Walk-Forward eliminerebbe il problema
+ma produrrebbe al massimo 8--9 valutazioni con alta varianza (Tabella~\ref{tab:m2-cv-vs-wf}).
+
+\paragraph{Nessun tuning degli iperparametri.}
+I classificatori usano i default Weka (100 alberi RF, $k=1$ IBk). Un grid search
+migliorerebbe i risultati ma richiederebbe una CV annidata aggiuntiva.
+
+\paragraph{Classificatore interno dei metodi wrapper.}
+I wrapper usano NaiveBayes internamente: il subset ottimale per NB può non esserlo per RF
+o IBk, come evidenziato nei risultati.
+
+\paragraph{Approssimazione SMOTE e wrapper.}
+La percentuale SMOTE è calcolata sull'intero dataset; la variazione per-fold è $\approx$10\%.
+Con 19 feature GreedyStepwise è trattabile; con molte più feature il costo cresce
+quadraticamente.
+
+\subsection{Milestone 3}
+
+\paragraph{Training bias su A.}
+BClassifierA è addestrato su A e predice su A (in-campione): il bias agisce identicamente
+su B+ e B, cancellandosi nel confronto. Le predizioni su A non sono confrontabili con le
+metriche di M2 (fuori-campione).
+
+\paragraph{Indipendenza tra NSmells e le altre feature.}
+Il controfattuale azzera NSmells mantenendo le altre 18 feature invariate. Nella realtà
+un file privo di smell ha tipicamente anche meno LOC e meno storia di modifica: la
+distribuzione B è artificiale e non corrisponde a nessuna popolazione reale.
+
+\paragraph{Composizione dei ruleset PMD.}
+Il ruleset \texttt{codestyle} rileva violazioni di stile che crescono linearmente con la
+dimensione del file, riducendo l'indipendenza di NSmells. Studi con SonarQube sono
+scarsamente confrontabili.
+
+\paragraph{Dipendenza dal classificatore.}
+I risultati dipendono dal BClassifier scelto: un classificatore diverso (es.\ IBk) avrebbe
+pesi diversi per NSmells e potrebbe produrre un impatto significativamente diverso.
+
+\subsection{Milestone 4}

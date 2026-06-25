@@ -1,0 +1,4 @@
+Configuration,Num_Features,Precision,Recall,AUC,Kappa,NPofB20
+RF_SMOTE_all_features,19,0.6250,0.6639,0.9416,0.6076,0.8801
+RF_SMOTE_no_NSmells,18,0.6291,0.6638,0.9412,0.6100,0.8798
+Delta (no_NSmells - all_features),-1,0.0041,-0.0001,-0.0003,0.0024,-0.0003

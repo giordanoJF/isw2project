@@ -14,5 +14,5 @@ if [ -d "$DEST" ]; then
 fi
 
 mkdir -p "$DEST"
-rsync -a --exclude="milestone1/6_extracted_source/" output/ "$DEST/"
+rsync -a --exclude="milestone1/6_extracted_source/" --exclude="milestone4/source/" output/ "$DEST/"
 echo "Saved to $DEST"

@@ -1,0 +1,464 @@
+% ─── M1: Parametri tuning ─────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}p{0.32\textwidth}p{0.3\textwidth}p{0.3\textwidth}@{}}
+\toprule
+\textbf{Parametro} & \textbf{Prima} & \textbf{Dopo} \\
+\midrule
+Frazione di snapshot processati &
+argomento hardcoded passato a \texttt{computeAll()} &
+\texttt{metrics.snapshotPercentage} in \texttt{config.yaml} \\
+\addlinespace
+File analizzati per invocazione PMD &
+\texttt{static final int BATCH\_SIZE = 100} &
+\texttt{metrics.pmd.batchSize} \\
+\addlinespace
+Frazione core assegnata a PMD &
+\texttt{static final double CPU\_FRACTION = 0.5} &
+\texttt{metrics.pmd.cpuFraction} \\
+\bottomrule
+\end{tabular}
+\caption{Parametri di tuning spostati da costanti hardcoded a \texttt{config.yaml}.}
+\label{tab:m1-tuning}
+\end{table}
+
+% ─── M1: Riorganizzazione cartelle ────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Vecchio percorso} & \textbf{Nuovo percorso} \\
+\midrule
+\texttt{output/originalResult/}   & \texttt{output/milestone1/1\_raw\_jira\_data/} \\
+\texttt{output/enrichedResult/}   & \texttt{output/milestone1/2\_enriched\_jira\_data/} \\
+\texttt{output/checkedResult/}    & \texttt{output/milestone1/3\_consistency\_checked/} \\
+\texttt{output/proportionResult/} & \texttt{output/milestone1/4\_proportion\_applied/} \\
+\texttt{output/snapshotResult/}   & \texttt{output/milestone1/5\_snapshots/} \\
+\texttt{output/code/}             & \texttt{output/milestone1/6\_extracted\_source/} \\
+\texttt{output/classifierResult/} & \texttt{output/milestone2/} \\
+\bottomrule
+\end{tabular}
+\caption{Riorganizzazione delle cartelle di output con prefissi numerici descrittivi.}
+\label{tab:m1-folders}
+\end{table}
+
+% ─── M2: Confronto classificatori ─────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}p{0.14\textwidth}p{0.38\textwidth}p{0.38\textwidth}@{}}
+\toprule
+\textbf{Classificatore} & \textbf{Vantaggi} & \textbf{Svantaggi} \\
+\midrule
+RandomForest &
+Robusto all'overfitting; probabilità ben calibrate; non richiede
+normalizzazione; stabile tra run diversi &
+Meno interpretabile; il più lento senza parallelismo
+($\approx$757\,s per combinazione, rfSlots=1) \\
+\addlinespace
+NaiveBayes &
+Il più veloce ($\approx$6\,s); interpretabile analiticamente;
+beneficia dalla FS che riduce le ridondanze &
+Assunzione di indipendenza quasi sempre violata;
+probabilità spesso mal calibrate \\
+\addlinespace
+IBk &
+Non parametrico; cattura pattern locali; nessuna fase di training &
+Lento in prediction ($\approx$227\,s); sensibile alla scala;
+con dataset sbilanciato la maggioranza domina i $k$ vicini \\
+\bottomrule
+\end{tabular}
+\caption{Confronto tra i tre classificatori. Tempi riferiti a 10$\times$10 CV su OpenJPA ($\approx$15.338 istanze) senza balancing.}
+\label{tab:m2-classifiers}
+\end{table}
+
+% ─── M2: Runtime ──────────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Configurazione} & \textbf{Combinazioni} & \textbf{Stima (4 thread)} \\
+\midrule
+Default (3 clf $\times$ 3 FS $\times$ 3 bal, SMOTE disabilitato) & 27 & $\approx$35 min \\
++ SMOTE (3 clf $\times$ 3 FS $\times$ 4 bal) & 36 & $\approx$1 ora \\
++ ForwardSearch o BackwardSearch & $+$9 ciascuno & $+$9--27 ore \\
+Tutto abilitato (3 clf $\times$ 5 FS $\times$ 4 bal) & 60 & 1--3 giorni \\
+\bottomrule
+\end{tabular}
+\caption{Stime di runtime su hardware mid-range (rfSlots$=1$). I tempi base RF $\approx$757\,s, IBk $\approx$227\,s, NB $\approx$6\,s sono hardware-specifici.}
+\label{tab:m2-runtime}
+\end{table}
+
+% ─── M2: CV vs Walk-Forward ───────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}p{0.25\textwidth}p{0.33\textwidth}p{0.33\textwidth}@{}}
+\toprule
+\textbf{Aspetto} & \textbf{10$\times$10 Cross-Validation} & \textbf{Walk-Forward} \\
+\midrule
+Rispetto della temporalità &
+No --- fold casuali, possibile leakage temporale &
+Sì --- training sempre nel passato \\
+\addlinespace
+Numero di valutazioni &
+100 (10 run $\times$ 10 fold) &
+$\approx$8--9 (una per release) \\
+\addlinespace
+Varianza della stima &
+Bassa --- 100 misure, media stabile &
+Alta --- le prime iterazioni hanno pochissimi dati \\
+\addlinespace
+Correttezza metodologica &
+Compromesso accettato in letteratura &
+Ideale per simulare l'uso reale \\
+\bottomrule
+\end{tabular}
+\caption{Confronto tra 10$\times$10 Cross-Validation e Walk-Forward Validation su OpenJPA ($\approx$11 release con snapshot).}
+\label{tab:m2-cv-vs-wf}
+\end{table}
+
+% ─── R1: Dataset M1 ───────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Proprietà} & \textbf{Valore} \\
+\midrule
+Progetto & Apache OpenJPA \\
+Versioni Jira totali & 42 \\
+Release considerate (primo 33\%) & 14 \\
+Release saltate (nessun tag Git) & 3 \\
+Snapshot totali & 15.338 \\
+Snapshot etichettati come buggy & 1.378 (8,98\%) \\
+Commit totali nel repository & 7.834 \\
+Commit con chiave ticket & 5.443 (69\%) \\
+Ticket unici indicizzati & 1.817 \\
+\bottomrule
+\end{tabular}
+\caption{Riepilogo del dataset prodotto per Apache OpenJPA.}
+\label{tab:r1-summary}
+\end{table}
+
+% ─── R2: Run preliminare ──────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{Classificatore} & \textbf{Balancing} & \textbf{Precision} & \textbf{Recall} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+RandomForest  & None          & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
+RandomForest  & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+RandomForest  & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
+NaiveBayes    & None          & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+NaiveBayes    & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+NaiveBayes    & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+IBk           & None          & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+IBk           & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+IBk           & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+\bottomrule
+\end{tabular}
+\caption{Risultati del run preliminare (No FS; metriche arrotondate a 2 cifre decimali). I valori con InfoGain e Spearman sono quasi identici per ogni riga.}
+\label{tab:r2-preliminary}
+\end{table}
+
+% ─── R2: Balancing trade-off ──────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{RF} & \textbf{Precision} & \textbf{Recall} & \textbf{Kappa} \\
+\midrule
+None          & 0,73 & 0,52 & \textbf{0,58} \\
+Undersampling & 0,31 & 0,86 & \textbf{0,37} \\
+Oversampling  & 0,61 & 0,66 & \textbf{0,59} \\
+\bottomrule
+\end{tabular}
+\caption{Effetto del balancing su RandomForest: trade-off Precision/Recall/Kappa.}
+\label{tab:r2-balancing}
+\end{table}
+
+% ─── R2: AUC per classificatore ───────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Classificatore} & \textbf{AUC (None)} & \textbf{AUC (Under)} & \textbf{AUC (Over)} \\
+\midrule
+RandomForest & \textbf{0,94} & 0,91 & 0,94 \\
+NaiveBayes   & 0,79          & 0,76 & 0,78 \\
+IBk          & 0,75          & 0,79 & 0,77 \\
+\bottomrule
+\end{tabular}
+\caption{AUC per classificatore e strategia di balancing.}
+\label{tab:r2-auc}
+\end{table}
+
+% ─── R2: NPofB20 ──────────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Classificatore} & \textbf{NPofB20 (None)} & \textbf{NPofB20 (Under)} &
+\textbf{NPofB20 (Over)} \\
+\midrule
+RandomForest & \textbf{0,88} & 0,80 & 0,87 \\
+NaiveBayes   & 0,54          & 0,53 & 0,54 \\
+IBk          & 0,56          & 0,57 & 0,61 \\
+\bottomrule
+\end{tabular}
+\caption{NPofB20 per classificatore e strategia di balancing. Baseline casuale: $\approx$0,20.}
+\label{tab:r2-npofb20}
+\end{table}
+
+% ─── R2: Best classifier ──────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lllccccc@{}}
+\toprule
+\textbf{Clf} & \textbf{FS} & \textbf{Bal.} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+RF  & No            & No            & \textbf{0,73} & 0,52 & \textbf{0,94} & 0,58 & \textbf{0,88} \\
+RF  & BackwardSearch & Undersampling & 0,31          & \textbf{0,87} & 0,91 & 0,37 & 0,80 \\
+RF  & No            & SMOTE         & 0,63          & 0,66 & \textbf{0,94} & \textbf{0,61} & \textbf{0,88} \\
+NB  & BackwardSearch & No           & 0,39          & 0,28 & 0,80 & 0,27 & 0,56 \\
+IBk & No            & No            & 0,53          & 0,51 & 0,75 & 0,47 & 0,56 \\
+\bottomrule
+\end{tabular}
+\caption{Configurazioni ottimali per ogni metrica (valori massimi in grassetto).}
+\label{tab:r2-best}
+\end{table}
+
+% ─── R2: RF completo ──────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{FS} & \textbf{Balancing} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+No             & No            & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
+No             & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+No             & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
+No             & SMOTE         & 0,63 & 0,66 & 0,94 & \textbf{0,61} & 0,88 \\
+InfoGain       & No            & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
+InfoGain       & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+InfoGain       & Oversampling  & 0,60 & 0,66 & 0,94 & 0,59 & 0,87 \\
+InfoGain       & SMOTE         & 0,63 & 0,67 & 0,94 & \textbf{0,61} & 0,88 \\
+Spearman       & No            & 0,72 & 0,53 & 0,94 & 0,58 & 0,88 \\
+Spearman       & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+Spearman       & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
+Spearman       & SMOTE         & 0,63 & 0,67 & 0,94 & \textbf{0,61} & 0,88 \\
+ForwardSearch  & No            & 0,72 & 0,53 & 0,94 & 0,58 & 0,88 \\
+ForwardSearch  & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
+ForwardSearch  & Oversampling  & 0,58 & 0,67 & 0,93 & 0,58 & 0,86 \\
+ForwardSearch  & SMOTE         & 0,57 & 0,66 & 0,93 & 0,57 & 0,85 \\
+BackwardSearch & No            & 0,72 & 0,52 & 0,94 & 0,57 & 0,88 \\
+BackwardSearch & Undersampling & 0,31 & 0,87 & 0,91 & 0,37 & 0,80 \\
+BackwardSearch & Oversampling  & 0,59 & 0,67 & 0,93 & 0,59 & 0,86 \\
+BackwardSearch & SMOTE         & 0,62 & 0,62 & 0,94 & 0,58 & 0,87 \\
+\bottomrule
+\end{tabular}
+\caption{RandomForest -- risultati completi (20 combinazioni). Kappa massimo in grassetto.}
+\label{tab:r2-rf-full}
+\end{table}
+
+% ─── R2: NB completo ──────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{FS} & \textbf{Balancing} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+No             & No            & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+No             & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+No             & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+No             & SMOTE         & 0,34 & 0,33 & 0,78 & 0,27 & 0,55 \\
+InfoGain       & No            & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+InfoGain       & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+InfoGain       & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+InfoGain       & SMOTE         & 0,34 & 0,33 & 0,78 & 0,27 & 0,55 \\
+Spearman       & No            & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
+Spearman       & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
+Spearman       & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
+Spearman       & SMOTE         & 0,34 & 0,33 & 0,78 & 0,27 & 0,55 \\
+ForwardSearch  & No            & 0,36 & 0,29 & \textbf{0,80} & 0,27 & 0,56 \\
+ForwardSearch  & Undersampling & 0,31 & 0,40 & 0,79 & 0,28 & 0,56 \\
+ForwardSearch  & Oversampling  & 0,32 & 0,40 & 0,79 & 0,28 & 0,56 \\
+ForwardSearch  & SMOTE         & 0,35 & 0,35 & 0,77 & \textbf{0,29} & 0,57 \\
+BackwardSearch & No            & 0,39 & 0,28 & \textbf{0,80} & 0,27 & 0,56 \\
+BackwardSearch & Undersampling & 0,32 & 0,38 & 0,78 & 0,28 & 0,56 \\
+BackwardSearch & Oversampling  & 0,33 & 0,37 & \textbf{0,80} & 0,28 & 0,56 \\
+BackwardSearch & SMOTE         & 0,34 & 0,35 & 0,79 & 0,28 & 0,57 \\
+\bottomrule
+\end{tabular}
+\caption{NaiveBayes -- risultati completi (20 combinazioni). AUC e Kappa massimi in grassetto.}
+\label{tab:r2-nb-full}
+\end{table}
+
+% ─── R2: IBk completo ─────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{FS} & \textbf{Balancing} & \textbf{Prec.} & \textbf{Rec.} &
+\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+No             & No            & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+No             & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+No             & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+No             & SMOTE         & 0,46 & 0,60 & 0,78 & 0,46 & \textbf{0,64} \\
+InfoGain       & No            & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+InfoGain       & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+InfoGain       & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+InfoGain       & SMOTE         & 0,46 & 0,60 & 0,78 & 0,46 & \textbf{0,64} \\
+Spearman       & No            & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
+Spearman       & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
+Spearman       & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
+Spearman       & SMOTE         & 0,46 & 0,60 & 0,78 & 0,46 & \textbf{0,64} \\
+ForwardSearch  & No            & 0,51 & 0,48 & 0,75 & 0,45 & 0,54 \\
+ForwardSearch  & Undersampling & 0,26 & 0,80 & 0,79 & 0,29 & 0,56 \\
+ForwardSearch  & Oversampling  & 0,44 & 0,55 & 0,76 & 0,43 & 0,59 \\
+ForwardSearch  & SMOTE         & 0,38 & 0,62 & \textbf{0,80} & 0,40 & \textbf{0,64} \\
+BackwardSearch & No            & 0,50 & 0,48 & 0,75 & 0,44 & 0,53 \\
+BackwardSearch & Undersampling & 0,26 & 0,79 & 0,79 & 0,29 & 0,56 \\
+BackwardSearch & Oversampling  & 0,43 & 0,55 & 0,76 & 0,42 & 0,58 \\
+BackwardSearch & SMOTE         & 0,40 & 0,61 & 0,79 & 0,42 & 0,61 \\
+\bottomrule
+\end{tabular}
+\caption{IBk -- risultati completi (20 combinazioni). AUC e NPofB20 massimi in grassetto.}
+\label{tab:r2-ibk-full}
+\end{table}
+
+% ─── R3: Dataset whatif ───────────────────────────────────────────────────────
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Dataset} & \textbf{Istanze} & \textbf{Actual Buggy} & \textbf{Predicted Buggy} \\
+\midrule
+A  (intero)              & 15.338 & 1.378 & 1.384 \\
+B+ (NSmells $> 0$)       & 12.792 & 1.119 & 1.125 \\
+B  (B+ con NSmells $= 0$) & 12.792 & 1.119 & 1.137 \\
+C  (NSmells $= 0$)       &  2.546 &   259 &   259 \\
+\bottomrule
+\end{tabular}
+\caption{Riepilogo dei dataset e predizioni di BClassifierA (RF + No FS + SMOTE addestrato su A).}
+\label{tab:r3-datasets}
+\end{table}
+
+% ─── R3: Prevenzione ──────────────────────────────────────────────────────────
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Metrica} & \textbf{Valore} \\
+\midrule
+Prevented\_Total           &  63    \\
+Prevented\_Proportion      &  4,57\% \\
+Prevented\_Of\_Predictable &  5,60\% \\
+\bottomrule
+\end{tabular}
+\caption{Metriche di prevenzione: impatto dell'azzeramento di NSmells sulle predizioni di BClassifierA.}
+\label{tab:r3-prevention}
+\end{table}
+
+% ─── R3: Correlazione Spearman NSmells ────────────────────────────────────────
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+\toprule
+\textbf{Feature} & $\boldsymbol{\rho}$ \\
+\midrule
+LOC               & $0{,}7821$ \\
+Max\_Churn        & $0{,}7123$ \\
+LOC\_Touched      & $0{,}6909$ \\
+Churn             & $0{,}6909$ \\
+Weighted\_Age     & $0{,}6900$ \\
+Max\_LOC\_Added   & $0{,}6632$ \\
+LOC\_Added        & $0{,}6618$ \\
+Avg\_Churn        & $0{,}5621$ \\
+Nauth             & $0{,}5312$ \\
+NR                & $0{,}5276$ \\
+Avg\_LOC\_Added   & $0{,}4700$ \\
+Age               & $0{,}2894$ \\
+Change\_Set\_Size & $0{,}2518$ \\
+Avg\_Change\_Set  & $-0{,}2416$ \\
+Nfix              & $0{,}1666$ \\
+Max\_Change\_Set  & $0{,}1606$ \\
+SEXP              & $0{,}1302$ \\
+EXP               & $0{,}0381$ \\
+\bottomrule
+\end{tabular}
+\caption{Correlazione di Spearman tra \texttt{Previous\_Release\_Code\_Smells} e le altre
+         18 feature del dataset A (Apache OpenJPA, 15.338 istanze), ordinate per valore assoluto decrescente.}
+\label{tab:r3-correlation}
+\end{table}
+
+% ─── R3: Ablazione ────────────────────────────────────────────────────────────
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Configurazione} & \textbf{Feature} & \textbf{P} & \textbf{R} & \textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
+\midrule
+RF + SMOTE (tutte le feature) & 19 & $0{,}625$ & $0{,}664$ & $0{,}942$ & $0{,}608$ & $0{,}880$ \\
+RF + SMOTE (senza NSmells)    & 18 & $0{,}629$ & $0{,}664$ & $0{,}941$ & $0{,}610$ & $0{,}880$ \\
+\midrule
+$\Delta$ (senza $-$ con)      & $-1$ & $+0{,}004$ & $\approx 0$ & $\approx 0$ & $+0{,}002$ & $\approx 0$ \\
+\bottomrule
+\end{tabular}
+\caption{Studio di ablazione: 10$\times$10-fold CV con RF + No FS + SMOTE con e senza \texttt{Previous\_Release\_Code\_Smells}.}
+\label{tab:r3-ablation}
+\end{table}
+
+% ─── M4: Versioni refactored ──────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Versione} & \textbf{Tipo} & \textbf{Test inclusi nel prompt} \\
+\midrule
+$C_0$ & Originale  & N/A \\
+$C_1$ & Refactored & nessuno \\
+$C_2$ & Refactored & Test Black Box (BB) \\
+$C_3$ & Refactored & BB + Test Control Flow (CF) \\
+$C_4$ & Refactored & BB + CF + Mutation Testing (MT) \\
+\bottomrule
+\end{tabular}
+\caption{Sequenza di versioni refactored con test progressivi.}
+\label{tab:m4-versions}
+\end{table}
+
+% ─── M4: Classi selezionate ───────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+\textbf{Rank} & \textbf{Nsmells} & \textbf{LOC} & \textbf{Classe} \\
+\midrule
+3   & 1576 & 5510 & \texttt{openjpa-kernel/.../kernel/BrokerImpl.java} \\
+817 & 0    & 116  & \texttt{openjpa-persistence/.../criteria/OpenJPACriteriaBuilder.java} \\
+\bottomrule
+\end{tabular}
+\caption{Classi selezionate da \texttt{4.1.1} con formula $X=2$
+         (G $\Rightarrow$ 7 mod 5 = 2, caso 2: rank $1{+}X$ e $N{-}X$).
+         $N = 819$ classi con LOC $\geq 100$.}
+\label{tab:m4-selected}
+\end{table}
