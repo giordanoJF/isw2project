@@ -17,22 +17,43 @@ public class ClassSizeFilterService {
 
     public Map<String, Integer> filter(Map<String, Integer> smells, Path sourceDir, int locThreshold) {
         LinkedHashMap<String, Integer> result = new LinkedHashMap<>();
-        int removed = 0;
+        int removedLoc = 0;
+        int removedInterface = 0;
         for (Map.Entry<String, Integer> entry : smells.entrySet()) {
-            long loc = countLines(sourceDir.resolve(entry.getKey()));
-            if (loc >= locThreshold) {
-                result.put(entry.getKey(), entry.getValue());
+            Path file = sourceDir.resolve(entry.getKey());
+            long loc = countLines(file);
+            if (loc < locThreshold) {
+                removedLoc++;
+            } else if (isNonInstantiable(file)) {
+                removedInterface++;
             } else {
-                removed++;
+                result.put(entry.getKey(), entry.getValue());
             }
         }
-        log.info("Removed {} classes with LOC < {} (kept: {})", removed, locThreshold, result.size());
+        log.info("Removed {} classes with LOC < {}, {} interfaces/abstract (kept: {})",
+                removedLoc, locThreshold, removedInterface, result.size());
         return result;
     }
 
     long countLines(Path file) {
         try (Stream<String> lines = Files.lines(file)) {
             return lines.count();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private boolean isNonInstantiable(Path file) {
+        try (Stream<String> lines = Files.lines(file)) {
+            return lines.anyMatch(line -> {
+                String t = line.stripLeading();
+                return t.startsWith("public interface ")
+                    || t.startsWith("interface ")
+                    || t.startsWith("public sealed interface ")
+                    || t.startsWith("public non-sealed interface ")
+                    || t.startsWith("public abstract class ")
+                    || t.startsWith("abstract class ");
+            });
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

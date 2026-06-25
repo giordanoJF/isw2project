@@ -13,6 +13,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,12 +57,17 @@ public class NsmellsService {
             log.info("PMD progress: {}/{} files analyzed", Math.min(i + batchSize, files.size()), files.size());
         }
 
+        Comparator<Map.Entry<String, Integer>> bySmellsDesc =
+                Map.Entry.<String, Integer>comparingByValue().reversed();
+        Comparator<Map.Entry<String, Integer>> byLocDesc =
+                Comparator.comparingLong((Map.Entry<String, Integer> e) ->
+                        locOf(sourceDir.resolve(e.getKey()))).reversed();
+
         return smells.entrySet().stream()
-                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
-                        .thenComparing(Map.Entry.comparingByKey()))
+                .sorted(bySmellsDesc.thenComparing(byLocDesc))
                 .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
+                        e -> e.getKey(),
+                        e -> e.getValue(),
                         (a, b) -> a,
                         LinkedHashMap::new));
     }
@@ -75,6 +81,14 @@ public class NsmellsService {
                     .toList();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private long locOf(Path file) {
+        try (Stream<String> lines = Files.lines(file)) {
+            return lines.count();
+        } catch (IOException e) {
+            return 0L;
         }
     }
 

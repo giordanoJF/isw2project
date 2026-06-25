@@ -2,10 +2,11 @@
 
 \subsubsection{Selezione delle classi}
 
-Applicando PMD 7.7.0 all'ultima release (\texttt{4.1.1}) e filtrando le classi con
-LOC $< 100$, si ottengono \textbf{819 classi} ordinate per Nsmells decrescente.
+Applicando PMD 7.7.0 all'ultima release (\texttt{4.1.1}), filtrando le classi con
+LOC $< 100$, le interfacce e le classi astratte, si ottengono \textbf{623 classi}
+concrete ordinate per Nsmells decrescente (pareggi: LOC decrescente).
 Applicando la formula con $X = 2$ (Giordano $\Rightarrow G = 7,\; 7 \bmod 5 = 2$),
-le due classi selezionate (rank $1{+}X = 3$ e rank $N{-}X = 817$) sono:
+le due classi selezionate (rank $1{+}X = 3$ e rank $N{-}X = 621$) sono:
 
 \begin{itemize}
   \item \textbf{Rank 3 -- BrokerImpl} (\texttt{openjpa-kernel/src/main/java/org/apache/%
@@ -13,9 +14,12 @@ openjpa/kernel/BrokerImpl.java}): 1576 smells, 5510 LOC.\\
   Classe centrale del kernel: gestisce il ciclo di vita delle entità persistenti
   (fetch, merge, delete, flush, commit).
 
-  \item \textbf{Rank 817 -- OpenJPACriteriaBuilder} (\texttt{openjpa-persistence/src/main/%
-java/org/apache/openjpa/persistence/criteria/OpenJPACriteriaBuilder.java}): 0 smell, 116 LOC.\\
-  Classe compatta del layer Criteria API: factory delle espressioni di query tipizzate.
+  \item \textbf{Rank 621 -- UnmodifiableOrderedMapIterator} (\texttt{openjpa-lib/src/main/%
+java/org/apache/openjpa/lib/util/collections/UnmodifiableOrderedMapIterator.java}):
+  2 smells, 111 LOC.\\
+  Classe finale del layer collections: wrapper non modificabile per un iteratore su mappa
+  ordinata; delega tutte le operazioni di lettura e lancia
+  \texttt{UnsupportedOperationException} per quelle di scrittura.
 \end{itemize}
 
 \subsubsection{Refactoring e analisi (C\textsubscript{1}--C\textsubscript{4})}

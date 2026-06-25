@@ -24,9 +24,21 @@ escluse tramite lo stesso filtro di produzione usato in M1 (\texttt{JavaClassFil
 Le classi con LOC $< 100$ sono rimosse dall'elenco: classi troppo piccole presentano
 pochi metodi e opportunità di refactoring trascurabili.
 
-\paragraph{Formula di selezione}
+\paragraph{Filtro tipi non istanziabili}
 
-Le classi rimanenti sono ordinate per Nsmells decrescente. La selezione
+Dopo il filtro dimensionale, vengono escluse le interfacce Java (varianti \texttt{interface},
+\texttt{sealed interface}, \texttt{non-sealed interface}) e le classi astratte
+(\texttt{abstract class}). Entrambe le categorie sono prive di implementazione completa
+e non costituiscono candidati significativi per il refactoring: un LLM non può rimuovere
+code smell strutturali da un file privo di corpi dei metodi o non istanziabile
+direttamente. Il rilevamento avviene per pattern testuale sulla riga di dichiarazione
+del tipo (\texttt{ClassSizeFilterService.isNonInstantiable()}).
+
+\paragraph{Ordinamento e formula di selezione}
+
+Le classi rimanenti sono ordinate per Nsmells decrescente; a parità di Nsmells il
+criterio secondario è LOC decrescente, così da privilegiare la classe più ricca di
+codice e dare priorità a quelle con maggiori opportunità di refactoring. La selezione
 avviene tramite la formula fornita dal docente:
 
 \begin{enumerate}
