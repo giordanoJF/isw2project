@@ -4,16 +4,20 @@
 
 **NON COMMITTARE MAI DI PROPRIA INIZIATIVA.** Eseguire `git commit` solo quando l'utente lo chiede esplicitamente.
 
+**Commit modulari**: ogni commit deve riguardare una sola feature o tipo di modifica. Non raggruppare in un unico commit modifiche al codice, modifiche al report e modifiche alla configurazione — sono commit separati. Esempio: un commit per la nuova feature Java, un commit separato per il report, un altro per il CLAUDE.md.
+
 **Non includere mai** Co-Authored-By, "Generated with Claude", né alcuna attribuzione a Claude nei messaggi di commit.
 
 ---
 
 ## Panoramica del progetto
 
-Studio di bug prediction su **Apache OpenJPA** in due milestone:
+Studio di bug prediction su **Apache OpenJPA** in quattro milestone:
 
 - **Milestone 1**: scarica ticket Jira, clona il repo, estrae snapshot di classi Java per release, calcola 19 metriche (process + product), etichetta ogni snapshot come buggy/clean.
 - **Milestone 2**: addestra e valuta classificatori (RandomForest, NaiveBayes, IBk) su tutte le combinazioni di feature selection e class balancing con 10-times 10-fold CV.
+- **Milestone 3**: analisi controfattuale — quante classi buggy sarebbero state prevenute in assenza di code smell; studio di ridondanza (correlazione Spearman e ablation study).
+- **Milestone 4**: selezione automatica di classi da refactorare in base a formula docente; report violazioni PMD con scheletro prompt Copilot.
 
 **Stack tecnologico:** Java 26, Maven, Jackson, PMD 7, SLF4J + Logback, JGit 7.1.0 (clone), Git via ProcessBuilder (estrazione), Weka 3.8.6, jul-to-slf4j.
 
@@ -57,10 +61,18 @@ output/
 │   ├── 2_enriched_jira_data/     # dopo enrichment OV/AV
 │   ├── 3_consistency_checked/    # dopo consistency check
 │   ├── 4_proportion_applied/     # dopo Proportion
-│   ├── 5_snapshots/              # OPENJPA_snapshots.csv  ← input M2
+│   ├── 5_snapshots/              # OPENJPA_snapshots.csv  ← input M2/M3
 │   └── 6_extracted_source/       # sorgenti Java da Git per release
-└── milestone2/
-    └── OPENJPA_classifier.csv    # una riga per (clf × FS × balancing)
+├── milestone2/
+│   └── OPENJPA_classifier.csv    # una riga per (clf × FS × balancing)
+├── milestone3/
+│   ├── OPENJPA_whatif_prevention.csv   # classi buggy prevenibili senza smells
+│   ├── OPENJPA_whatif_datasets.csv     # dataset con/senza smells
+│   ├── OPENJPA_whatif_correlation.csv  # correlazione Spearman per feature
+│   └── OPENJPA_whatif_ablation.csv     # ablation study per smell threshold
+└── milestone4/
+    ├── class_selection.csv       # classi ranked con flag selected
+    └── smell_report.txt          # violazioni PMD per le classi selezionate
 ```
 
 ---
@@ -90,15 +102,13 @@ classifier:
 
 Sezione `classifier` (M2):
 - `classifiers`: RANDOM_FOREST, NAIVE_BAYES, IBK
-- `featureSelection`: NONE, INFO_GAIN, SPEARMAN (FORWARD_SEARCH/BACKWARD_SEARCH commentati: 1-3h per combinazione)
-- `balancing`: NONE, UNDERSAMPLING, OVERSAMPLING (SMOTE commentato)
+- `featureSelection`: NONE, INFO_GAIN, SPEARMAN, FORWARD_SEARCH, BACKWARD_SEARCH (i wrapper sono lenti: 1-3h per combinazione)
+- `balancing`: NONE, UNDERSAMPLING, OVERSAMPLING, SMOTE
 - `crossValidation.runs/folds`: 10 × 10
 - `parallelism.interactive`: true → prompt runtime, false → legge dal file
 - `parallelism.combinations` / `randomForestSlots`: "auto" | "N" | "N%" — i due si moltiplicano
   - Portatile: `combinations: "50%"`, `randomForestSlots: "1"`
   - PC fisso: entrambi `"auto"`
-
-Default: 27 combinazioni (3 clf × 3 FS × 3 bal, ~35 min con 4 thread).
 
 ---
 
@@ -133,8 +143,9 @@ Default: 27 combinazioni (3 clf × 3 FS × 3 bal, ~35 min con 4 thread).
 
 ```
 com.isw2project/
-├── config/           AppConfig, ClassifierConfig, CrossValidationConfig,
-│                     ParallelismConfig, MetricsConfig
+├── config/           AppConfig, ClassifierConfig, CrossValidationConfig, ParallelismConfig,
+│                     MetricsConfig, CsvConfig, GitConfig, ProjectConfig, RefactoringConfig,
+│                     WhatIfConfig, ConfigLoader, InteractiveParallelismConfigurator
 ├── model/            Issue, Version, ProjectData, JavaClassSnapshot, ReleaseSnapshot
 ├── downloader/       client REST Jira
 ├── enricher/         enrichment OV/AV/FV
@@ -329,7 +340,6 @@ classifier/
 ├── ClassifierEvaluatorService          10×10 CV, accumula metriche, gestisce NaN
 ├── NpofB20Service                      calcola NPofB20 da eval.predictions()
 ├── ClassifierResultRowMapperService    formatta righe per CsvWriterService
-├── InteractiveParallelismConfigurator  prompt a runtime per thread count
 ├── RuntimeEstimatorService             stima wall-clock prima dell'esecuzione
 ├── SpearmanAttributeEval               ⚙ custom ASEvaluation (Spearman rank)
 ├── SmoteFilter                         ⚙ custom SimpleBatchFilter (SMOTE k-NN)
@@ -352,58 +362,12 @@ classifier/
 `output/milestone2/OPENJPA_classifier.csv`
 Colonne: `Dataset, Classifier, FS, Balancing, Precision, Recall, AUC, Kappa, NPofB20`
 
-### RuntimeEstimatorService — calibrazione
-
-RF=757s, IBk=227s, NB=6s (NONE FS, NONE bal). UNDERSAMPLING ×0.20, OVERSAMPLING ×1.65, SMOTE ×2.0. Stima 27 combinazioni: ~2h22m sequenziale → ~35m con 4 thread.
-
 ---
 
 ## Componenti custom
 
 - `SpearmanAttributeEval`: `ASEvaluation` + `AttributeEvaluator` per Spearman rank correlation.
 - `SmoteFilter`: `SimpleBatchFilter` SMOTE custom.
-
----
-
-## Numeri chiave Milestone 4 (release 4.1.1)
-
-| Dato | Valore |
-|---|---|
-| Release analizzata | `4.1.1` (ultima disponibile) |
-| Classi Java di produzione totali | ~650+ (prima dei filtri) |
-| Classi dopo filtro LOC<100 e interfacce/abstract | ~623 |
-| Classi dopo filtro Nsmells<10 | **602** |
-| Classe selezionata A (rank 3, first+2) | `BrokerImpl.java` — 1576 smells, 5510 LOC |
-| Classe selezionata B (rank 600, last-2) | `LoginDialog.java` — 10 smells, 155 LOC |
-| X (formula docente, Giordano→G=7, 7 mod 5) | **2** |
-
-**Output prodotti:**
-- `output/milestone4/class_selection.csv` — 602 classi ranked con flag selected
-- `output/milestone4/smell_report.txt` — violazioni PMD complete per A e B, con scheletro prompt Copilot
-
----
-
-## Numeri chiave del dataset (OpenJPA, run completo)
-
-| Dato | Valore |
-|---|---|
-| Versioni Jira totali | 42 |
-| Release nel primo 33% | 14 |
-| Release saltate (no tag Git) | 3 (`0.9.0`, `2.0.0-M1`, `2.0.0-M2`) |
-| Snapshot totali | 15.338 |
-| Snapshot buggy | 1.378 (8,98%) |
-| Commit totali | 7.834 |
-| Commit con chiave issue | 5.443 (69,48%) |
-| Issue unici indicizzati | 1.817 |
-
-**Timing pipeline M1 completa:**
-
-| Fase | Tempo |
-|---|---|
-| CommitIndexService + git extraction | ~47s |
-| GitLogStatsService.buildIndex() | ~11s |
-| PMD batch (14 release) | ~279s |
-| **Totale** | **~5-6 minuti** |
 
 ---
 
@@ -416,24 +380,6 @@ RF=757s, IBk=227s, NB=6s (NONE FS, NONE bal). UNDERSAMPLING ×0.20, OVERSAMPLING
 **Versioni Jira senza tag Git**: `0.9.0`, `2.0.0-M1`, `2.0.0-M2` esistono su Jira ma non hanno tag Git (progetto era su SVN). Saltate con warning. I ticket che le referenziano sono mantenuti.
 
 **Performance PMD**: `analyzeBatch()` raggruppa tutti i file di una release in sub-batch da `batchSize` file per invocazione. Costo di inizializzazione pagato ~14 volte invece di 15.338. Tempo PMD ora fisso (~279s).
-
----
-
-## Risultati run preliminare (27 combinazioni, SMOTE e wrapper FS disabilitati)
-
-| Classifier | Bal | Precision | Recall | AUC | Kappa | NPofB20 |
-|---|---|---|---|---|---|---|
-| RF | None | 0.73 | 0.52 | 0.94 | 0.58 | 0.88 |
-| RF | Under | 0.31 | 0.86 | 0.91 | 0.37 | 0.80 |
-| RF | Over | 0.61 | 0.66 | 0.94 | 0.59 | 0.87 |
-| NB | None | 0.35 | 0.29 | 0.79 | 0.26 | 0.54 |
-| NB | Under | 0.34 | 0.32 | 0.76 | 0.26 | 0.53 |
-| NB | Over | 0.34 | 0.32 | 0.78 | 0.26 | 0.54 |
-| IBk | None | 0.53 | 0.51 | 0.75 | 0.47 | 0.56 |
-| IBk | Under | 0.26 | 0.81 | 0.79 | 0.30 | 0.57 |
-| IBk | Over | 0.47 | 0.58 | 0.77 | 0.46 | 0.61 |
-
-FS = no-op: InfoGain e Spearman con threshold=0.0 non eliminano nessuna feature. Kappa < 0.6 è un limite strutturale con 9% di imbalance (soglia ottimale ≠ 0.5). AUC 0.94 e Kappa 0.58 coesistono senza contraddizione (AUC = ranking, Kappa = predizioni binarie a threshold 0.5).
 
 ---
 
