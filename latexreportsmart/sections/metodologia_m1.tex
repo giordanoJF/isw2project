@@ -2,34 +2,34 @@
 
 \subsubsection{Versioni e ticket Jira}
 
-Le versioni scaricate tramite Jira REST API sono state filtrate per: campo
-\texttt{released = true} e presenza di \texttt{releaseDate}. Sono emerse 42 versioni
-valide per Apache OpenJPA. Per la costruzione del dataset è stato considerato solo il
-\textbf{primo 33\% delle release} in ordine cronologico (14 su 42), per ridurre al minimo
-i bug dormienti (\textit{snoring bugs}) che compaiono statisticamente nelle versioni più
-recenti. Le release saltate (3 versioni senza tag Git) non compensano il calcolo del 33\%,
-per la stessa ragione.
+Il primo passo è stato raccogliere da Jira, tramite REST API, i due tipi di dato che
+strutturano l'intera pipeline: le \textbf{versioni} del progetto e i \textbf{ticket di
+bug}.
 
-I ticket Jira sono stati scaricati con il filtro JQL
-\textit{``issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed''} e
-modellati con i campi: \texttt{created}, \texttt{affectedVersions} (AV),
-\texttt{fixVersions} (FV), \texttt{openingVersion} (OV = prima versione precedente alla
-creazione), \texttt{injectedVersion} (IV = AV più antica).
+Per le versioni, il download recupera tutte quelle registrate su Jira senza filtri;
+lo scarto avviene nei check di consistenza descritti nella sezione successiva
+(Tabella~\ref{tab:m1-consistency}), che riducono la lista a \textbf{42 versioni valide}.
+Solo dopo questo filtraggio si applica il taglio al \textbf{primo 33\% in ordine
+cronologico} (14 su 42): le release più recenti tendono a contenere bug non ancora
+scoperti né corretti al momento dell'analisi (\textit{snoring bugs}). 3 versioni sono prive di tag Git e vengono
+saltate \emph{non} venendo sostituite con altre nel conteggio del 33\%, sempre per motivazione snoring.\\
+
+
+Per i ticket, il filtro JQL
+\textit{``issuetype = Bug AND status in (Closed, Resolved) AND resolution = Fixed''}
+seleziona solo bug confermati e risolti. I campi estratti sono: \texttt{created} (data di apertura),
+\texttt{affectedVersions} (AV, versioni in cui il bug era presente),
+\texttt{fixVersions} (FV, versioni in cui è stato corretto), a cui la pipeline aggiunge
+\texttt{openingVersion} (OV, prima versione rilasciata antecedente alla data di creazione) e
+\texttt{injectedVersion} (IV, AV più datata).
 
 \subsubsection{Arricchimento e check di consistenza}
 
-Prima dei check, ogni ticket subisce: (1) calcolo della OV; (2) riduzione delle FV a una
-sola (la più recente, ritenuta più affidabile); (3) rimozione delle versioni senza
-\texttt{releaseDate}; (4) se AV assenti ma FV disponibili, le FV tranne l'ultima vengono
-interpretate come AV --- approccio preferito a Proportion perché sfrutta l'informazione
-già presente nel ticket, pur restando un'ipotesi. I ticket privi di data di creazione o
-antecedenti a qualsiasi versione vengono scartati (qualità dati preferita alla quantità).
-
-I check di consistenza verificano, per ogni ticket: presenza di chiave, data di creazione,
-almeno una FV e una AV con data di rilascio, FV temporalmente successiva a ogni AV, OV
-precedente o uguale alla FV. Per le versioni: presenza di nome, data di rilascio e stato
-\textit{released}. I ticket non conformi vengono rimossi; le versioni inconsistenti vengono
-eliminate anche dai riferimenti nei ticket.
+L'arricchimento aggiunge campi derivati senza scartare record; i check di consistenza
+eliminano versioni e ticket non conformi. L'arricchimento precede i check perché alcuni
+check dipendono da campi calcolati (es.\ OV necessaria per il check FV $\geq$ OV).
+Le operazioni sono descritte nelle Tabelle~\ref{tab:m1-enrichment}
+e~\ref{tab:m1-consistency}.
 
 \subsubsection{Stima AV con Proportion}
 
@@ -42,23 +42,35 @@ I ticket con $FV = OV$ o con IV stimata $= FV$ vengono scartati.
 
 \subsubsection{Estrazione snapshot Git}
 
-Per ogni release viene identificato il tag Git con match esatto (es.\ \texttt{1.0.0}) o
-con suffisso dopo trattino (es.\ \texttt{0.9.6-incubating}), escludendo tag SNAPSHOT. Tre
-versioni Jira (\texttt{0.9.0}, \texttt{2.0.0-M1}, \texttt{2.0.0-M2}) non hanno tag Git
-(il progetto era su SVN in quel periodo) e vengono saltate, mantenendo però i relativi ticket.
+Il termine \textbf{snapshot} viene usato a due livelli. A livello atomico, uno snapshot
+è una singola classe Java al momento dell'ultimo commit di una specifica release,
+identificata dalla coppia (\emph{classPath}, \emph{release}): per ognuno si conserva il
+sorgente in quello stato, insieme alle metriche e all'etichetta di bugginess calcolate
+nei passi successivi. A livello aggregato, lo \textbf{snapshot di una release} è l'insieme di tutti
+gli snapshot delle classi Java presenti in quella release.
 
-I file vengono elencati con \texttt{git ls-tree -r --name-only <tag>} e il sorgente estratto
-con \texttt{git show <tag>:<path>}. I file inclusi devono: terminare con \texttt{.java},
-non contenere directory di test (\texttt{/test/}, \texttt{/tests/}), non terminare con
-\texttt{Test.java} o \texttt{Tests.java}.
+Jira e Git sono sistemi separati: Jira conosce il nome di una versione, Git conosce i
+commit. Per estrarre il sorgente dell'ultimo commit di una release (ovvero il commit che rappresenta la release) occorre collegare i due mondi, ovvero
+identificare quale commit corrisponde a quel rilascio. Questo collegamento è fornito dai \textbf{tag Git}: puntatori esterni che referenziano un
+commit specifico. Da quel commit è
+possibile recuperare l'intero stato del progetto in quell'istante, e quindi estrarre gli
+snapshot della release. Senza tag, non esiste un punto di ancoraggio nel repository e gli
+snapshot non possono essere costruiti.
 
-\paragraph{Scelta: full clone vs shallow clone.}
-La prima versione della pipeline eseguiva uno \emph{shallow clone} (\texttt{depth=1}),
-dimezzando i tempi di download ma causando un bug silenzioso: \texttt{CommitIndexService}
-e \texttt{GitLogStatsService}, che scansionano l'intera storia dei commit, vedevano meno
-del 10\% dei commit reali. Il tasso di bugginess risultante era $\approx$60\% invece del
-$\approx$9\% atteso. La correzione è il \textbf{full clone} via JGit, che garantisce
-l'intera storia disponibile.
+Per tre versioni di OpenJPA il tag manca perché all'epoca il progetto era ospitato su SVN,
+non su Git: quelle versioni vengono saltate e non contribuiscono al dataset. I ticket che
+le referenziano vengono comunque mantenuti, poiché contengono informazioni sulle AV e FV
+utili per il labeling delle release rimanenti.
+
+Una volta individuato il tag, si elencano i file presenti in quella revisione e si
+estraggono i sorgenti Java di produzione, escludendo file di test e classi di supporto
+al testing. Questo garantisce che il dataset contenga solo il codice che sarebbe stato
+effettivamente soggetto a bug in produzione.
+
+Il sorgente di ogni snapshot viene estratto dall'ultimo commit della release, ma le metriche
+cumulative e il bugginess labeling richiedono l'intera storia del repository: quanti commit
+ha ricevuto un file, chi lo ha toccato, quali commit citano un ticket Jira. Per questo
+l'intero repository è stato clonato con tutta la sua storia, non solo l'ultimo stato ad ogni release.
 
 \subsubsection{Bugginess labeling}
 
@@ -68,44 +80,28 @@ almeno un ticket tale che:
     \item la release è tra le AV del ticket;
     \item almeno un commit che cita la chiave del ticket tocca quel \emph{classPath}.
 \end{enumerate}
-Il linkage commit--ticket è costruito tramite un singolo
-\texttt{git log --all --name-only}, che associa a ogni chiave di ticket i file toccati
-dai commit che la citano.
+
 
 \subsubsection{Metriche}
 
-Vengono calcolate 19 metriche per ogni snapshot. Le \textbf{metriche puntuali} sono
-calcolate sullo stato del file all'ultimo commit della release: \textbf{LOC} (righe non
-vuote) e \textbf{Previous\_Release\_Code\_Smells}. Le \textbf{metriche cumulative} sono
-calcolate su tutti i commit del file dall'inizio della storia fino alla release:
+Vengono calcolate 19 metriche per ogni snapshot, descritte in Tabella~\ref{tab:m1-metrics}.
+Le metriche si classificano secondo due dimensioni ortogonali.
 
-\begin{itemize}[noitemsep]
-  \item \textbf{LOC\_Touched}: $\sum(\text{righeAgg} + \text{righeCan})$ --- volume totale di riscrittura.
-  \item \textbf{NR}: numero totale di commit sul file.
-  \item \textbf{Nfix}: commit che citano un ticket con $FV = \text{release corrente}$ e toccano il file.
-  \item \textbf{Nauth}: autori distinti (per email).
-  \item \textbf{LOC\_Added/Max/Avg}: somma, massimo e media delle righe aggiunte per commit.
-  \item \textbf{Churn/Max/Avg}: righe aggiunte + cancellate per commit (riscrittura netta).
-  \item \textbf{Change\_Set\_Size/Max/Avg}: file committati insieme (accoppiamento strutturale).
-  \item \textbf{Age}: giorni dal primo commit alla data di rilascio.
-  \item \textbf{Weighted\_Age}: $\text{Age} \times \text{LOC\_Touched}$ (anzianità ponderata per attività).
-  \item \textbf{EXP} e \textbf{SEXP}: esperienza autore in commit-day distinti, globale vs ristretta al sotto-sistema. Calcolate via ricerca binaria su indici preordinati costruiti \textit{una tantum}.
-\end{itemize}
+La prima riguarda il \textbf{soggetto}: le \textbf{metriche di classe} descrivono proprietà
+della classe stessa (dimensione, storia delle modifiche, qualità del codice); le
+\textbf{metriche di commit} descrivono proprietà del cambiamento, in particolare
+l'esperienza dello sviluppatore che ha effettuato i commit sul file (EXP, SEXP).
+
+La seconda riguarda la \textbf{modalità di calcolo}: le \textbf{metriche puntuali}
+si calcolano su un singolo commit (l'ultimo della release); le \textbf{metriche aggregate}
+accumulano un valore su tutti i commit del file dall'inizio della storia fino alla release
+(somme, massimi, medie).
 
 \paragraph{Code smell e shift temporale.}
-I code smell sono rilevati tramite \textbf{PMD} con i ruleset \texttt{bestpractices},
-\texttt{design}, \texttt{errorprone} e \texttt{codestyle}. La metrica è denominata
-\textbf{Previous\_Release\_Code\_Smells} perché i smell introdotti nella release $N$ non
+I code smell sono rilevati tramite \textbf{PMD}. La metrica è denominata
+\textbf{Previous\_Release\_Code\_Smells} perché gli smell introdotti nella release $N$ non
 impattano $N$ ma le successive:
 \[
 \text{Previous\_Release\_Code\_Smells}(\text{classe},\, N) = \text{CodeSmells}(\text{classe},\, N-1)
 \]
-Snapshot della prima release e classi nuove ricevono valore 0. Nel caso di branch paralleli
-(branch \texttt{1.x} e \texttt{2.x} di OpenJPA), le classi assenti nella release precedente
-ricevono 0: comportamento corretto e atteso rispetto alla logica implementata.
-
-\subsubsection{Aggiornamenti durante la Milestone 2}
-
-Clone automatico via JGit (\texttt{repocloner} package, con fix shallow clone); parametri
-PMD estratti da costanti a \texttt{config.yaml} (Tabella~\ref{tab:m1-tuning}); cartelle
-output rinominate con prefissi numerici (Tabella~\ref{tab:m1-folders}).
+Snapshot della prima release e classi nuove ricevono valore 0.

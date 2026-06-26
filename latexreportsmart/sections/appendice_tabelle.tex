@@ -1,3 +1,64 @@
+% ─── M1: Arricchimento ────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}cp{0.27\textwidth}p{0.22\textwidth}p{0.38\textwidth}@{}}
+\toprule
+\textbf{\#} & \textbf{Operazione} & \textbf{Soggetto} & \textbf{Motivazione} \\
+\midrule
+1 & Rimozione versioni senza \texttt{releaseDate} &
+    AV, FV, OV in ogni ticket &
+    Prerequisito per tutti i confronti temporali successivi \\
+\addlinespace
+2 & Inferenza AV da FV multiple &
+    Ticket senza AV con più di una FV &
+    Sfrutta informazione già nel ticket; preferito a Proportion quando disponibile \\
+\addlinespace
+3 & Calcolo OV &
+    Tutti i ticket &
+    Prima versione rilasciata prima della data di creazione; prerequisito per il check FV $\geq$ OV \\
+\addlinespace
+4 & Riduzione a FV singola &
+    Ticket con più FV &
+    La FV più recente è la più affidabile; le intermedie indicano fix parziali \\
+\addlinespace
+5 & Rimozione riferimenti zombie &
+    AV, FV, OV in ogni ticket &
+    Elimina versioni rimosse dalla lista ufficiale Jira ma ancora citate in qualche ticket \\
+\bottomrule
+\end{tabular}
+\caption{Operazioni di arricchimento sui ticket (nell'ordine di esecuzione).}
+\label{tab:m1-enrichment}
+\end{table}
+
+% ─── M1: Check di consistenza ─────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}p{0.12\textwidth}p{0.30\textwidth}p{0.48\textwidth}@{}}
+\toprule
+\textbf{Soggetto} & \textbf{Check} & \textbf{Motivazione} \\
+\midrule
+Versione & \texttt{released = true}            & Versioni non rilasciate mancano di data definitiva \\
+Versione & Presenza \texttt{releaseDate}        & Senza data non è possibile ordinarle cronologicamente \\
+Versione & Presenza nome                        & Senza nome la versione non è identificabile nel dataset \\
+\midrule
+Ticket   & Presenza chiave Jira                 & Identificatore minimo del ticket \\
+Ticket   & Presenza data di creazione           & Prerequisito per calcolo OV e check temporali \\
+Ticket   & Almeno una FV                        & FV è il riferimento temporale principale del fix \\
+Ticket   & FV con \texttt{releaseDate}          & Senza data la FV non è ordinabile \\
+Ticket   & Creato dopo la versione più vecchia  & Evita ticket antecedenti al progetto \\
+Ticket   & FV $\geq$ OV                         & Il fix non può precedere l'apertura del ticket \\
+Ticket   & FV $>$ ogni AV                       & La versione corretta deve essere successiva a quelle affette \\
+Ticket   & Tutte le versioni con \texttt{releaseDate} & OV, AV e FV devono essere tutte ordinabili \\
+\midrule
+Ticket (post-Proportion) & Almeno una AV       & Scarta i ticket per cui Proportion non ha prodotto una IV valida \\
+\bottomrule
+\end{tabular}
+\caption{Check di consistenza su versioni e ticket. I check su versioni eliminano la versione dalla lista; i check su ticket eliminano il ticket.}
+\label{tab:m1-consistency}
+\end{table}
+
 % ─── M1: Parametri tuning ─────────────────────────────────────────────────────
 \begin{table}[h!]
 \centering
@@ -44,34 +105,39 @@ Frazione core assegnata a PMD &
 \label{tab:m1-folders}
 \end{table}
 
-% ─── M2: Confronto classificatori ─────────────────────────────────────────────
+% ─── M1: Metriche ─────────────────────────────────────────────────────────────
 \begin{table}[h!]
 \centering
 \small
-\begin{tabular}{@{}p{0.14\textwidth}p{0.38\textwidth}p{0.38\textwidth}@{}}
+\begin{tabular}{@{}p{0.28\textwidth}p{0.22\textwidth}p{0.40\textwidth}@{}}
 \toprule
-\textbf{Classificatore} & \textbf{Vantaggi} & \textbf{Svantaggi} \\
+\textbf{Metrica} & \textbf{Tipo} & \textbf{Descrizione} \\
 \midrule
-RandomForest &
-Robusto all'overfitting; probabilità ben calibrate; non richiede
-normalizzazione; stabile tra run diversi &
-Meno interpretabile; il più lento senza parallelismo
-($\approx$757\,s per combinazione, rfSlots=1) \\
-\addlinespace
-NaiveBayes &
-Il più veloce ($\approx$6\,s); interpretabile analiticamente;
-beneficia dalla FS che riduce le ridondanze &
-Assunzione di indipendenza quasi sempre violata;
-probabilità spesso mal calibrate \\
-\addlinespace
-IBk &
-Non parametrico; cattura pattern locali; nessuna fase di training &
-Lento in prediction ($\approx$227\,s); sensibile alla scala;
-con dataset sbilanciato la maggioranza domina i $k$ vicini \\
+LOC                          & Class --- puntuale   & Righe non vuote del file all'ultimo commit della release \\
+Age                          & Class --- puntuale   & Giorni dal primo commit del file alla data di rilascio \\
+Weighted\_Age                & Class --- puntuale   & $\text{Age} \times \text{LOC\_Touched}$ (anzianità ponderata per attività) \\
+Previous\_Release\_ \newline Code\_Smells & Class --- puntuale & Violazioni PMD sull'ultimo commit della release precedente \\
+\midrule
+LOC\_Touched                 & Class --- aggregata & $\sum(\text{righe aggiunte} + \text{righe cancellate})$ su tutti i commit \\
+NR                           & Class --- aggregata & Numero totale di commit che toccano il file \\
+Nfix                         & Class --- aggregata & Commit che citano un ticket con $FV = \text{release corrente}$ e toccano il file \\
+Nauth                        & Class --- aggregata & Autori distinti per email \\
+LOC\_Added                   & Class --- aggregata & Somma delle righe aggiunte per commit \\
+Max\_LOC\_Added              & Class --- aggregata & Massimo delle righe aggiunte in un singolo commit \\
+Avg\_LOC\_Added              & Class --- aggregata & Media delle righe aggiunte per commit \\
+Churn                        & Class --- aggregata & Somma di righe aggiunte + cancellate per commit \\
+Max\_Churn                   & Class --- aggregata & Massimo churn in un singolo commit \\
+Avg\_Churn                   & Class --- aggregata & Media del churn per commit \\
+Change\_Set\_Size            & Class --- aggregata & Somma dei file committati insieme al file in esame \\
+Max\_Change\_Set             & Class --- aggregata & Massimo change set in un singolo commit \\
+Avg\_Change\_Set             & Class --- aggregata & Media del change set per commit \\
+\midrule
+EXP                          & Commit              & Media tra gli autori del file dei giorni distinti in cui hanno effettuato commit sull'intero repository \\
+SEXP                         & Commit              & Come EXP, ma i commit-day sono contati solo sul sottosistema del file (primo segmento del path) \\
 \bottomrule
 \end{tabular}
-\caption{Confronto tra i tre classificatori. Tempi riferiti a 10$\times$10 CV su OpenJPA ($\approx$15.338 istanze) senza balancing.}
-\label{tab:m2-classifiers}
+\caption{Le 19 metriche calcolate per ogni snapshot, classificate secondo la tassonomia del professore.}
+\label{tab:m1-metrics}
 \end{table}
 
 % ─── M2: Runtime ──────────────────────────────────────────────────────────────
