@@ -454,11 +454,11 @@ $C_4$ & Refactored & BB + CF + Mutation Testing (MT) \\
 \textbf{Rank} & \textbf{Nsmells} & \textbf{LOC} & \textbf{Classe} \\
 \midrule
 3   & 1576 & 5510 & \texttt{openjpa-kernel/.../kernel/BrokerImpl.java} \\
-817 & 0    & 116  & \texttt{openjpa-persistence/.../criteria/OpenJPACriteriaBuilder.java} \\
+600 & 10   & 155  & \texttt{openjpa-examples/.../trader/client/LoginDialog.java} \\
 \bottomrule
 \end{tabular}
 \caption{Classi selezionate da \texttt{4.1.1} con formula $X=2$
-         (G $\Rightarrow$ 7 mod 5 = 2, caso 2: rank $1{+}X$ e $N{-}X$).
-         $N = 819$ classi con LOC $\geq 100$.}
+         (G $\Rightarrow$ 7 mod 5 = 2, caso 2: rank $1{+}X$ e rank $N{-}X$).
+         $N = 602$ classi dopo filtri LOC $\geq 100$, non-istanziabili, Nsmells $\geq 10$.}
 \label{tab:m4-selected}
 \end{table}

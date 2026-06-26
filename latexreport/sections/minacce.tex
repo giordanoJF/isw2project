@@ -120,5 +120,31 @@ NSmells e potrebbe produrre un numero di istanze prevenute significativamente di
 
 \subsection{Milestone 4}
 
-% TODO: descrivere i limiti del refactoring automatico, le assunzioni sui test
-% e le possibili conseguenze di scelte soggettive nel prompt.
+\paragraph{Non-determinismo dell'LLM.}
+Lo stesso prompt fornito a Copilot può produrre versioni C\textsubscript{X} diverse
+in run successivi. I risultati dipendono dalla specifica generazione e non sono
+riproducibili deterministicamente senza fissare il seed del modello, che la maggior
+parte degli strumenti cloud non espone.
+
+\paragraph{Equivalenza funzionale limitata alla suite di test.}
+Il criterio di accettazione di C\textsubscript{X} è il superamento della suite di
+test scritta dallo studente. Questi test possono non coprire tutti i casi d'uso reali:
+una classe che supera i test non è necessariamente funzionalmente equivalente a
+C\textsubscript{0} per tutti gli input.
+
+\paragraph{Soggettività del prompt.}
+La scelta di quali smell enfatizzare nel prompt, il loro ordine e il livello di dettaglio
+delle istruzioni influenzano il comportamento dell'LLM. Due studenti con le stesse classi
+possono ottenere C\textsubscript{X} significativamente diversi, limitando la
+comparabilità inter-studente dei risultati.
+
+\paragraph{Mismatch tra strumenti di analisi.}
+PMD è usato per selezionare le classi e misurare i smell residui; il prompt Copilot fa
+riferimento a diagnostiche SonarCloud. I due strumenti rilevano insiemi parzialmente
+diversi di smell per la stessa classe: il conteggio di smell residui misurato con PMD
+potrebbe non corrispondere a quello che il modello ha cercato di eliminare.
+
+\paragraph{Vincoli di context window su classi grandi.}
+BrokerImpl conta 5.510 LOC e potrebbe eccedere il context window disponibile,
+rendendo impossibile il refactoring completo in un singolo prompt e richiedendo
+strategie di segmentazione che introducono ulteriore soggettività.

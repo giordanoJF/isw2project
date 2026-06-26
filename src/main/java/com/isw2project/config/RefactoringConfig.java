@@ -7,6 +7,7 @@ public class RefactoringConfig {
     private String lastRelease = "2.0.0-beta3";
     private int smallClassLocThreshold = 100;
     private int selectionX = 2;
+    private int minSmellsThreshold = 10;
 
     public String getOutputDir()                        { return outputDir; }
     public void setOutputDir(String outputDir)          { this.outputDir = outputDir; }
@@ -22,4 +23,7 @@ public class RefactoringConfig {
 
     public int getSelectionX()                  { return selectionX; }
     public void setSelectionX(int selectionX)   { this.selectionX = selectionX; }
+
+    public int getMinSmellsThreshold()                        { return minSmellsThreshold; }
+    public void setMinSmellsThreshold(int minSmellsThreshold) { this.minSmellsThreshold = minSmellsThreshold; }
 }

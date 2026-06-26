@@ -133,6 +133,8 @@ refactoring:
   lastRelease: "4.1.1"
   # Classes with LOC < this threshold are excluded as "too small".
   smallClassLocThreshold: 100
+  # Classes with Nsmells < this threshold are excluded (too few smells to refactor).
+  minSmellsThreshold: 10
   # Selection formula: first name Giordano -> G = 7th letter -> X = 7 mod 5 = 2
   # Case 2: select class at rank (X+1) and class at rank (N-X).
   selectionX: 2

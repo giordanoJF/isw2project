@@ -15,10 +15,12 @@ public class ClassSizeFilterService {
 
     private static final Logger log = LoggerFactory.getLogger(ClassSizeFilterService.class);
 
-    public Map<String, Integer> filter(Map<String, Integer> smells, Path sourceDir, int locThreshold) {
+    public Map<String, Integer> filter(Map<String, Integer> smells, Path sourceDir,
+                                       int locThreshold, int minSmellsThreshold) {
         LinkedHashMap<String, Integer> result = new LinkedHashMap<>();
         int removedLoc = 0;
         int removedInterface = 0;
+        int removedSmells = 0;
         for (Map.Entry<String, Integer> entry : smells.entrySet()) {
             Path file = sourceDir.resolve(entry.getKey());
             long loc = countLines(file);
@@ -26,12 +28,14 @@ public class ClassSizeFilterService {
                 removedLoc++;
             } else if (isNonInstantiable(file)) {
                 removedInterface++;
+            } else if (entry.getValue() < minSmellsThreshold) {
+                removedSmells++;
             } else {
                 result.put(entry.getKey(), entry.getValue());
             }
         }
-        log.info("Removed {} classes with LOC < {}, {} interfaces/abstract (kept: {})",
-                removedLoc, locThreshold, removedInterface, result.size());
+        log.info("Removed {} classes with LOC < {}, {} interfaces/abstract, {} with Nsmells < {} (kept: {})",
+                removedLoc, locThreshold, removedInterface, removedSmells, minSmellsThreshold, result.size());
         return result;
     }
 

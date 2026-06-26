@@ -63,3 +63,18 @@
 \end{itemize}
 
 \subsection{Milestone 4}
+
+\begin{itemize}
+    \item Il filtro Nsmells $\geq 10$ è necessario prima della selezione: senza di
+    esso la classe a basso ranking avrebbe smell near-zero, rendendo il refactoring
+    triviale e il confronto C\textsubscript{0}/C\textsubscript{X} privo di significato.
+
+    \item La selezione meccanica produce classi agli estremi opposti dello spettro:
+    BrokerImpl (smell strutturali gravi) e LoginDialog (violazioni di stile minori).
+    Il contrasto consente di valutare l'LLM su scenari di difficoltà molto diversa.
+
+    \item Il report \texttt{smell\_report.txt} con lo scheletro del prompt Copilot
+    garantisce la riproducibilità: le istruzioni all'LLM sono tracciate e indipendenti
+    da scelte soggettive post-hoc.
+\end{itemize}
+

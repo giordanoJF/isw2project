@@ -45,8 +45,46 @@
 
 \subsection{Milestone 3}
 
-% TODO: inserire i messaggi chiave relativi all'impatto dei code smell sulla bugginess.
+\begin{itemize}
+    \item L'impatto dei code smell è limitato: azzerare NSmells previene solo il 5,60\%
+    dei bug predetti in B+, contro il 42\% del paper di riferimento (Falessi). La
+    differenza dipende dallo strumento di rilevazione (PMD vs SonarQube), dal contesto
+    (open source ad alto turnover vs industriale disciplinato) e dallo sfasamento temporale
+    della metrica.
+
+    \item NSmells è ridondante rispetto alle metriche di processo: $\rho = 0{,}78$ con LOC,
+    $\rho > 0{,}65$ con Churn, LOC\_Touched e Weighted\_Age. La causa è strutturale:
+    il ruleset \texttt{codestyle} di PMD rileva violazioni di stile che crescono linearmente
+    con la dimensione del file, già catturata dalle metriche di processo.
+
+    \item Lo studio di ablazione conferma la ridondanza: rimuovere NSmells lascia Kappa e
+    AUC invariati ($\Delta \approx 0$), con un lieve miglioramento di Precision ($+0{,}004$).
+    Una feature ridondante e collineare può addirittura aggiungere rumore marginale.
+
+    \item Il principale driver di bugginess in Apache OpenJPA è la storia di modifica del
+    codice (LOC\_Touched, NR, Churn, Nfix), non la qualità strutturale misurata tramite PMD.
+    Metriche di smell architetturali (God Class, Feature Envy, rilevabili con SonarQube)
+    potrebbero fornire un segnale più indipendente.
+\end{itemize}
 
 \subsection{Milestone 4}
 
-% TODO: inserire i messaggi chiave relativi al refactoring automatico.
+\begin{itemize}
+    \item Il filtro \texttt{Nsmells $\geq$ 10} è necessario prima della selezione:
+    senza di esso la classe a basso ranking avrebbe near-zero smell, rendendo il
+    refactoring triviale e il prompt Copilot privo di contenuto.
+
+    \item La selezione meccanica basata sul nome produce classi agli estremi opposti dello
+    spettro qualitativo: BrokerImpl (1576 smell strutturali) e LoginDialog (10 smell
+    stilistici). Questo contrasto consente di valutare l'LLM su scenari con difficoltà
+    molto diverse.
+
+    \item Il report automatico \texttt{smell\_report.txt} con le violazioni PMD complete
+    e lo scheletro del prompt Copilot garantisce la riproducibilità della fase di
+    refactoring: le istruzioni passate all'LLM sono tracciabili e non dipendono da
+    selezioni soggettive.
+
+    \item I risultati di C\textsubscript{1}--C\textsubscript{4} (step~9) sono in attesa
+    di produzione: la valutazione dell'efficacia del refactoring automatico richiede
+    la scrittura dei test e l'esecuzione di Copilot sulle due classi.
+\end{itemize}

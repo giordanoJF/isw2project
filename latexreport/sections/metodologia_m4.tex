@@ -8,38 +8,39 @@ progressivamente più stringenti (Step~9).
 \subsubsection{Selezione delle classi (Step 8)}
 
 L'analisi si concentra sull'ultima release disponibile nel repository Git di Apache
-OpenJPA (\texttt{4.1.1}), la release più recente al momento dell'analisi.
+OpenJPA (\texttt{4.1.1}).
 
 \paragraph{Analisi PMD}
 
 Tutte le classi Java di produzione della release vengono analizzate con PMD 7.7.0
 tramite gli stessi quattro ruleset adottati in Milestone 1
 (\texttt{bestpractices}, \texttt{design}, \texttt{errorprone}, \texttt{codestyle}).
-Per ogni classe viene contato il numero totale di violazioni (\textbf{Nsmells}).
-Le classi di test (\texttt{/test/}, \texttt{Test.java}, \texttt{Tests.java}) sono
-escluse tramite lo stesso filtro di produzione usato in M1 (\texttt{JavaClassFilterService}).
+Per ogni classe viene contato il numero totale di violazioni (\textbf{Nsmells}),
+e per le due classi selezionate viene prodotto un report dettagliato di ogni violazione
+(nome regola, categoria, numero di riga, messaggio) tramite \texttt{SmellDetailService}.
 
-\paragraph{Filtro classi piccole}
+\paragraph{Filtri applicati prima della selezione}
 
-Le classi con LOC $< 100$ sono rimosse dall'elenco: classi troppo piccole presentano
-pochi metodi e opportunità di refactoring trascurabili.
+Le classi sono escluse se soddisfano uno dei tre criteri seguenti, nell'ordine:
 
-\paragraph{Filtro tipi non istanziabili}
-
-Dopo il filtro dimensionale, vengono escluse le interfacce Java (varianti \texttt{interface},
-\texttt{sealed interface}, \texttt{non-sealed interface}) e le classi astratte
-(\texttt{abstract class}). Entrambe le categorie sono prive di implementazione completa
-e non costituiscono candidati significativi per il refactoring: un LLM non può rimuovere
-code smell strutturali da un file privo di corpi dei metodi o non istanziabile
-direttamente. Il rilevamento avviene per pattern testuale sulla riga di dichiarazione
-del tipo (\texttt{ClassSizeFilterService.isNonInstantiable()}).
+\begin{enumerate}
+  \item \textbf{Dimensione}: LOC $< 100$ -- classi troppo piccole con poche opportunità
+        di refactoring.
+  \item \textbf{Tipo non istanziabile}: interfacce (\texttt{interface},
+        \texttt{sealed interface}, \texttt{non-sealed interface}) e classi astratte
+        (\texttt{abstract class}) -- prive di implementazione completa, non candidati
+        significativi per un LLM che deve rimuovere smell strutturali.
+  \item \textbf{Nsmells minimi}: Nsmells $< 10$ -- classi sostanzialmente pulite che
+        non offrono materiale sufficiente per un refactoring motivato. Questa soglia
+        garantisce che la classe selezionata come ``last\,-2'' abbia abbastanza smell da
+        rendere il prompt Copilot non banale.
+\end{enumerate}
 
 \paragraph{Ordinamento e formula di selezione}
 
 Le classi rimanenti sono ordinate per Nsmells decrescente; a parità di Nsmells il
-criterio secondario è LOC decrescente, così da privilegiare la classe più ricca di
-codice e dare priorità a quelle con maggiori opportunità di refactoring. La selezione
-avviene tramite la formula fornita dal docente:
+criterio secondario è LOC decrescente. La selezione avviene tramite la formula del
+docente:
 
 \begin{enumerate}
   \item Prima lettera del nome: \texttt{G} (Giordano) $\Rightarrow$ numero = 7
@@ -47,12 +48,24 @@ avviene tramite la formula fornita dal docente:
   \item Caso 2: si selezionano le classi a rank $1{+}X = 3$ e $N{-}X = N{-}2$
 \end{enumerate}
 
-dove $N$ è la dimensione dell'elenco filtrato.
+dove $N$ è la dimensione dell'elenco dopo tutti i filtri.
+
+\paragraph{Output della selezione}
+
+La pipeline produce due file in \texttt{output/milestone4/}:
+\begin{itemize}
+  \item \texttt{class\_selection.csv} -- lista completa delle $N$ classi filtrate con
+        rank, path, Nsmells, LOC e flag di selezione;
+  \item \texttt{smell\_report.txt} -- per ciascuna delle due classi selezionate: tabella
+        di ogni violazione PMD (regola, categoria, righe, messaggio) e uno scheletro
+        del prompt Copilot pronto all'uso.
+\end{itemize}
 
 \subsubsection{Refactoring automatizzato (Step 9)}
 
 Per ogni classe selezionata viene prodotta una sequenza di versioni refactored
-($C_1$, $C_2$, $C_3$, $C_4$) tramite un LLM. Il prompt specifica di:
+($C_1$, $C_2$, $C_3$, $C_4$) tramite Microsoft Copilot (account universitario).
+Il prompt specifica di:
 
 \begin{enumerate}
   \item rimuovere i code smell identificati da SonarCloud senza alterare la funzionalità;
@@ -62,8 +75,7 @@ Per ogni classe selezionata viene prodotta una sequenza di versioni refactored
 \end{enumerate}
 
 Ogni versione aggiunge un livello di test al prompt, come mostrato in
-Tabella~\ref{tab:m4-versions}. Al momento della stesura è disponibile solo $C_1$
-(senza test); $C_2$--$C_4$ saranno prodotti non appena i test saranno scritti.
+Tabella~\ref{tab:m4-versions}.
 
 \begin{table}[h!]
 \centering

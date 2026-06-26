@@ -10,6 +10,7 @@ import com.isw2project.refactoring.ClassSelectorService;
 import com.isw2project.refactoring.ClassSizeFilterService;
 import com.isw2project.refactoring.NsmellsService;
 import com.isw2project.refactoring.ReleaseSourceService;
+import com.isw2project.refactoring.SmellDetailService;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
@@ -37,7 +38,8 @@ public class Milestone4Main {
                 new ReleaseSourceService(gitExtractor),
                 new NsmellsService(classFilter),
                 new ClassSizeFilterService(),
-                new ClassSelectorService()
+                new ClassSelectorService(),
+                new SmellDetailService()
         );
         orchestrator.run(refactoring, batchSize, cpuFraction);
     }

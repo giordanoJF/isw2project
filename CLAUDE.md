@@ -148,7 +148,16 @@ com.isw2project/
 ├── metrics/          calcolo metriche per ogni snapshot
 │   └── impl/         una classe per ogni metrica (implementano Metric)
 ├── repocloner/       clone automatico via JGit (no git CLI)
-└── classifier/       Milestone 2: pipeline ML Weka
+├── classifier/       Milestone 2: pipeline ML Weka
+├── whatif/           Milestone 3: analisi controfattuale code smell
+└── refactoring/      Milestone 4: selezione classi e report smell
+    ├── ReleaseSourceService        estrae sorgenti release da Git (skip se già presenti)
+    ├── NsmellsService              PMD su tutti i file → Map<path, Nsmells> ordinata
+    ├── ClassSizeFilterService      filtri: LOC<threshold, interfacce/abstract, Nsmells<minThreshold
+    ├── ClassSelectorService        applica formula X → List<String> (2 classi)
+    ├── SmellDetailService          PMD sulle 2 classi selezionate → violazioni complete
+    ├── ViolationDetail             record: ruleName, ruleSetName, beginLine, endLine, description
+    └── ClassSelectionOrchestrator  coordina; scrive class_selection.csv e smell_report.txt
 ```
 
 **Dipendenze tra package:** `gitextractor.support` è l'unico package trasversale, usato da `buggyness` e `metrics`. Nessun'altra dipendenza laterale tra package allo stesso livello.
@@ -356,6 +365,24 @@ RF=757s, IBk=227s, NB=6s (NONE FS, NONE bal). UNDERSAMPLING ×0.20, OVERSAMPLING
 
 ---
 
+## Numeri chiave Milestone 4 (release 4.1.1)
+
+| Dato | Valore |
+|---|---|
+| Release analizzata | `4.1.1` (ultima disponibile) |
+| Classi Java di produzione totali | ~650+ (prima dei filtri) |
+| Classi dopo filtro LOC<100 e interfacce/abstract | ~623 |
+| Classi dopo filtro Nsmells<10 | **602** |
+| Classe selezionata A (rank 3, first+2) | `BrokerImpl.java` — 1576 smells, 5510 LOC |
+| Classe selezionata B (rank 600, last-2) | `LoginDialog.java` — 10 smells, 155 LOC |
+| X (formula docente, Giordano→G=7, 7 mod 5) | **2** |
+
+**Output prodotti:**
+- `output/milestone4/class_selection.csv` — 602 classi ranked con flag selected
+- `output/milestone4/smell_report.txt` — violazioni PMD complete per A e B, con scheletro prompt Copilot
+
+---
+
 ## Numeri chiave del dataset (OpenJPA, run completo)
 
 | Dato | Valore |
@@ -410,19 +437,16 @@ FS = no-op: InfoGain e Spearman con threshold=0.0 non eliminano nessuna feature.
 
 ---
 
-## Report LaTeX (`latexreport/`)
+## Report LaTeX
 
-| File | Stato |
-|---|---|
-| `metodologia_m1.tex` | Completo. Aggiunta subsubsection "Aggiornamenti pipeline durante M2" (JGit/git, MetricsConfig, riorganizzazione cartelle). |
-| `risultati_m1.tex` | Completo (originale). |
-| `metodologia_m2.tex` | Completo. Include: CV correttezza predizioni accumulate, perché P+R non F1, perché Resample, gestione NaN, soppressione warning. |
-| `risultati_m2.tex` | Run preliminare inserito. **Manca: risultati run finale** (con SMOTE/wrapper/dataset aggiuntivi). |
-| `minacce.tex` | Completo per M1 e M2. |
-| `conclusioni.tex` | M1 completa (fix: 17→19 metriche). M2 con run preliminare. **Manca: aggiornamento con run finale.** |
-| `takeaway.tex` | Completo per M1 e M2. |
+Il progetto ha due versioni del report: `latexreport/` (originale, completo) e `latexreportsmart/` (condensato).
 
-**Lavoro pendente**: risultati del run completo → aggiornare `risultati_m2.tex` e `conclusioni.tex`.
+### Regole per `latexreportsmart/`
+
+- **Limite**: circa 18 pagine escluse immagini e tabelle (le tabelle vanno in appendice).
+- **Scopo**: dimostrare le scelte e motivazioni ingegneristiche, non documentare l'implementazione. Il lettore deve capire il *perché* di ogni decisione, non il *come* nei dettagli.
+- **Stile**: non va nel dettaglio di ogni componente. Approfondire solo le decisioni non ovvie, i trade-off, le scelte che distinguono questa soluzione da un'alternativa più semplice. Dettagli implementativi banali si omettono.
+- **Sintesi**: quando si deve tagliare, si taglia il descrittivo ("la classe X fa Y") e si mantiene il ragionamento ("X è preferito a Z perché…").
 
 ---
 

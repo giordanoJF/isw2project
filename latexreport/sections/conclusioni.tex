@@ -57,4 +57,17 @@ linearmente con la dimensione del file, già catturata dalle metriche di process
 
 \subsection{Milestone 4}
 
-% TODO: sintetizzare i risultati del refactoring automatico e le implicazioni pratiche.
+La Milestone 4 ha completato lo Step~8 della pipeline: PMD analizza tutte le classi
+di produzione della release \texttt{4.1.1} e, dopo i tre filtri (LOC $\geq 100$,
+rimozione di interfacce e classi astratte, Nsmells $\geq 10$), produce \textbf{602
+classi} candidate. La formula deterministica basata sul cognome seleziona
+\textbf{BrokerImpl.java} (rank~3, 1.576 smell strutturali, 5.510 LOC) e
+\textbf{LoginDialog.java} (rank~600, 10 smell stilistici, 155 LOC), coprendo
+deliberatamente gli estremi opposti dello spettro qualitativo.
+
+Il report automatico \texttt{smell\_report.txt} elenca ogni violazione con regola,
+categoria, numero di riga e messaggio diagnostico, e fornisce lo scheletro del prompt
+Copilot pronto all'uso, garantendo la tracciabilità delle istruzioni passate all'LLM.
+
+Lo Step~9 --- produzione iterativa di C\textsubscript{1}--C\textsubscript{4} con
+test progressivamente più stringenti --- è in attesa di esecuzione.

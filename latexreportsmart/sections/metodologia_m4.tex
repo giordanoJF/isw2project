@@ -7,15 +7,27 @@ Tabella~\ref{tab:m4-versions}).
 
 \subsubsection{Selezione delle classi (Step 8)}
 
-Tutte le classi Java di produzione dell'ultima release disponibile nel repository
-Git (\texttt{4.1.1}) vengono analizzate con PMD 7.7.0 (stessi ruleset di M1) per
-contare le violazioni (\emph{Nsmells}). Vengono escluse le classi con LOC $< 100$ (scarsità di metodi), le interfacce Java
-e le classi astratte (entrambe prive di implementazione completa: un LLM non può
-applicare refactoring significativo su un tipo non istanziabile).
-Le restanti classi vengono ordinate per Nsmells decrescente; a parità di Nsmells,
-criterio secondario LOC decrescente. La selezione segue la formula del docente:
+Tutte le classi Java di produzione dell'ultima release (\texttt{4.1.1}) vengono
+analizzate con PMD 7.7.0 (stessi ruleset di M1) per contare le violazioni
+(\emph{Nsmells}). Tre filtri vengono applicati in sequenza prima della selezione:
+
+\begin{enumerate}
+  \item \textbf{LOC $< 100$}: classi troppo piccole con poche opportunità di refactoring.
+  \item \textbf{Tipi non istanziabili}: interfacce e classi astratte; un LLM non può
+        applicare refactoring strutturale su file privi di implementazione.
+  \item \textbf{Nsmells $< 10$}: classi sostanzialmente pulite che non offrono
+        materiale sufficiente per un refactoring motivato; garantisce che anche la
+        classe a basso ranking abbia smell reali da rimuovere.
+\end{enumerate}
+
+Le classi rimanenti vengono ordinate per Nsmells decrescente (pareggi: LOC
+decrescente). La selezione segue la formula del docente:
 $G \Rightarrow 7 \bmod 5 = 2$, caso~2 $\Rightarrow$ rank~$3$ e rank~$N{-}2$
 (Tabella~\ref{tab:m4-selected}).
+
+Per le due classi selezionate, \texttt{SmellDetailService} esegue un secondo passaggio
+PMD e raccoglie ogni violazione con regola, categoria, numero di riga e messaggio,
+producendo lo scheletro del prompt Copilot pronto all'uso (\texttt{smell\_report.txt}).
 
 \subsubsection{Refactoring automatizzato (Step 9)}
 

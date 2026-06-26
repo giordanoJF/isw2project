@@ -28,3 +28,13 @@ driver principale di bugginess è la storia di modifica del codice, non la quali
 misurata tramite PMD \texttt{codestyle}.
 
 \subsection{Milestone 4}
+
+Lo Step~8 è completato: PMD su \texttt{4.1.1} con tre filtri (LOC $\geq 100$,
+rimozione di interfacce/astratte, Nsmells $\geq 10$) produce 602 classi candidate. La formula
+basata sul cognome seleziona \textbf{BrokerImpl.java} (rank~3, 1.576 smell strutturali,
+5.510 LOC) e \textbf{LoginDialog.java} (rank~600, 10 smell stilistici, 155 LOC),
+coprendo estremi opposti dello spettro qualitativo. Il report \texttt{smell\_report.txt}
+con violazioni complete e prompt Copilot preconfezionato garantisce la riproducibilità
+dello Step~9. Il refactoring (C\textsubscript{1}--C\textsubscript{4}) e i test sono in
+attesa di esecuzione.
+
