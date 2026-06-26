@@ -186,8 +186,8 @@ ricerca del subset ottimale opera esclusivamente sui dati del training fold, sen
 visibilità sul test fold.
 
 \medskip
-\noindent\textbf{Nota sui tempi:} i metodi wrapper sono \textbf{disabilitati di default}
-in \texttt{config.yaml}. Con 19 feature e 10$\times$10 fold CV esterna, ForwardSearch
+\noindent\textbf{Nota sui tempi:} i metodi wrapper sono \textbf{lenti} (1--3h per
+combinazione) e abilitabili o disabilitabili in \texttt{config.yaml}. Con 19 feature e 10$\times$10 fold CV esterna, ForwardSearch
 valuta al massimo $19 + 18 + \ldots + 1 = 190$ subset per fold esterno, ciascuno con
 5-fold CV interna su NaiveBayes, per un totale di $\approx$95.000 addestramenti per
 combinazione. Il tempo stimato è di 1--3 ore per singola combinazione (24 combinazioni
@@ -529,9 +529,9 @@ presenti nel primo 20\% dell'ordinamento.
 Le combinazioni da eseguire sono definite in \texttt{config.yaml} come prodotto cartesiano
 di tre liste: classificatori, strategie di feature selection e strategie di balancing.
 Commentare una voce la esclude dall'esecuzione senza modificare il codice. La
-configurazione default esegue 27 combinazioni (3 clf $\times$ 3 FS $\times$ 3 bal, con
-SMOTE e metodi wrapper disabilitati per default). Con tutte le strategie abilitate si
-arriva a 60 combinazioni.
+configurazione attuale esegue 60 combinazioni (3 clf $\times$ 5 FS $\times$ 4 bal, tutte
+le strategie abilitate). Disabilitando SMOTE e i metodi wrapper si scende a 27
+combinazioni (3 clf $\times$ 3 FS $\times$ 3 bal).
 
 \paragraph{Parallelismo a due livelli}
 
@@ -561,10 +561,10 @@ disponibili e chiede i valori a runtime.
 \toprule
 \textbf{Configurazione} & \textbf{Combinazioni} & \textbf{Stima (4 thread)} \\
 \midrule
-Default (3 clf $\times$ 3 FS $\times$ 3 bal, SMOTE disabilitato) & 27 & $\approx$35 min \\
+Minimo (SMOTE e wrapper disabilitati, 3 clf $\times$ 3 FS $\times$ 3 bal) & 27 & $\approx$35 min \\
 + SMOTE (3 clf $\times$ 3 FS $\times$ 4 bal) & 36 & $\approx$1 ora \\
 + ForwardSearch o BackwardSearch & $+$9 ciascuno & $+$9--27 ore \\
-Tutto abilitato (3 clf $\times$ 5 FS $\times$ 4 bal) & 60 & 1--3 giorni \\
+Tutto abilitato --- configurazione attuale (3 clf $\times$ 5 FS $\times$ 4 bal) & 60 & 1--3 giorni \\
 \bottomrule
 \end{tabular}
 \caption{Stime di runtime calibrate su OpenJPA ($\approx$15.338 istanze, rfSlots$=1$) su
