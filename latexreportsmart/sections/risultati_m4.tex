@@ -4,16 +4,9 @@
 
 PMD su \texttt{4.1.1}, dopo i tre filtri (LOC $\geq 100$, rimozione di interfacce e
 classi astratte, Nsmells $\geq 10$), produce \textbf{602 classi} concrete ordinate per
-Nsmells decrescente. Con $X=2$, le due classi selezionate (rank~3 e rank~600) sono
+Nsmells decrescente. Le due classi selezionate sono
 riportate in Tabella~\ref{tab:m4-selected}.
 
-Le due classi coprono deliberatamente estremi opposti dello spettro qualitativo:
-\textbf{BrokerImpl} presenta smell strutturali gravi (\emph{GodClass} con WMC=1\,236,
-\emph{CyclomaticComplexity} totale 1\,236, \emph{TooManyMethods}, 81 dipendenze in
-import), mentre \textbf{LoginDialog} ha solo 10 violazioni di \emph{Code Style}
-(parametri non-final, classi interne senza costruttore esplicito). Questo contrasto
-permette di valutare l'efficacia del refactoring LLM su scenari molto diversi per
-severità e natura degli smell.
 
 \subsubsection{Refactoring e analisi (C\textsubscript{1}--C\textsubscript{4})}
 

@@ -16,12 +16,8 @@ modello contano su questo problema.
 
 La feature selection (FS) identifica il sottoinsieme di attributi più informativo.
 Molte delle 19 feature sono ridondanti (\texttt{LOC\_Touched}, \texttt{LOC\_Added},
-\texttt{Churn} misurano varianti della stessa grandezza), con effetti diversificati:
-NaiveBayes viola l'assunzione di indipendenza condizionale, IBk soffre della maledizione
-della dimensionalità, RandomForest è relativamente robusto per via della selezione casuale
-interna. Il vantaggio principale della FS non è necessariamente migliorare le prestazioni,
-bensì mantenere performance simili con meno feature (velocità, interpretabilità, costi di
-manutenzione).
+\texttt{Churn} misurano varianti della stessa grandezza). Il vantaggio atteso della FS
+non è tanto migliorare le prestazioni quanto mantenerle simili con meno feature.
 
 Cinque metodi. \textbf{NONE}: baseline. \textbf{InfoGain} e \textbf{Spearman}:
 \emph{filter methods}, valutano ogni feature singolarmente e scartano quelle con score
@@ -68,12 +64,10 @@ Ripetere 10 run con seed diversi riduce la varianza: le 100 valutazioni producon
 stima stabile. Le predizioni accumulate su tutti i fold e run sono usate per calcolare
 le metriche finali, inclusa NPofB20 che richiede l'ordinamento globale di tutte le istanze.
 
-\paragraph{Temporalità e limitazione strutturale.}
+\paragraph{Temporalità.}
 La 10$\times$10 CV assegna le istanze ai fold in modo casuale, senza rispettare l'ordine
 temporale delle release: il modello può addestrarsi su release più recenti di quelle nel
-test fold (\textit{temporal leakage}). Le metriche risultanti tendono a essere leggermente
-ottimistiche. Questo è riconosciuto come limitazione nella sezione sulle minacce alla
-validità (Tabella~\ref{tab:m2-cv-vs-wf}).
+test fold (\textit{temporal leakage}).
 
 \subsubsection{Metriche di valutazione}
 
