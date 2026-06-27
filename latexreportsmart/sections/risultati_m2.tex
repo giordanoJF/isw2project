@@ -1,13 +1,5 @@
 \subsection{Milestone 2 -- Identificazione di modelli accurati}
 
-\subsubsection{Feature selection e risultati preliminari}
-
-I risultati del run preliminare (3 clf $\times$ 3 FS $\times$ 3 bal, SMOTE e wrapper
-disabilitati) sono in Tabella~\ref{tab:r2-preliminary}. I metodi filter (InfoGain, Spearman)
-sono un no-op: tutte le 19 feature sono informative (InfoGain $> 0$ per ognuna) e
-\texttt{Ranker(threshold=0.0)} non ne elimina nessuna. Le variazioni al secondo decimale
-per RF sono un artefatto del riordinamento interno degli attributi, non selezione reale.
-
 \subsubsection{Kappa e imbalance strutturale}
 
 Con $\approx$9\% di buggy, $P_e \approx 0{,}836$: Kappa $= 0{,}6$ richiede $P_o = 0{,}934$.
@@ -22,7 +14,7 @@ mostrano RF raramente sopra $0{,}60$.
 Undersampling triplica il Recall di RF ($0{,}52 \to 0{,}86$) ma fa crollare Kappa
 ($0{,}58 \to 0{,}37$) e Precision ($0{,}73 \to 0{,}31$): il training 50/50 spinge a predire
 ``buggy'' più spesso. Oversampling ottiene il miglior bilancio senza SMOTE (Recall $0{,}66$,
-Kappa $0{,}59$). Undersampling è preferibile nei sistemi critici (Recall $0{,}87$); per team
+Kappa $0{,}59$). Undersampling è preferibile nei sistemi critici (Recall $0{,}86$); per team
 con risorse limitate, il 69\% di falsi allarmi esaurisce la capacità di revisione
 (Tabella~\ref{tab:r2-balancing}).
 
@@ -43,6 +35,10 @@ valori binari; NB produce stime estreme per la correlazione tra feature. NPofB20
 \subsubsection{Risultati finali: 60 combinazioni}
 
 Risultati completi in Tabelle~\ref{tab:r2-rf-full}, \ref{tab:r2-nb-full}, \ref{tab:r2-ibk-full}.
+I metodi filter (InfoGain, Spearman) risultano un no-op: tutte le 19 feature hanno
+InfoGain $> 0$ e \texttt{Ranker(threshold=0.0)} non ne elimina nessuna; le variazioni
+al secondo decimale nelle righe RF sono un artefatto del riordinamento interno degli
+attributi, non selezione reale.
 SMOTE supera Oversampling per RF (Kappa $0{,}61$ vs $0{,}59$) e IBk (NPofB20 $0{,}64$ vs
 $0{,}61$): le istanze sintetiche aumentano la variabilità della minoranza in modo più granulare
 della duplicazione. NB non migliora (Kappa $0{,}27$): il limite è strutturale. I wrapper
@@ -52,7 +48,7 @@ scende a $0{,}38$: il subset ottimizzato per NB non è ottimale per la distanza 
 
 \subsubsection{Il classificatore migliore}
 
-\textbf{Raccomandazione: RF + No FS + SMOTE} per uso generale (Tabella~\ref{tab:r2-best}):
+\textbf{Raccomandazione: RF + No FS + SMOTE} per uso generale:
 \begin{enumerate}[noitemsep]
 \item Kappa massimo ($0{,}61$): miglior equilibrio complessivo.
 \item AUC e NPofB20 massimi ($0{,}94$, $0{,}88$).

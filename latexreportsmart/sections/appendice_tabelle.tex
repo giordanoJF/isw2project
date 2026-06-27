@@ -209,30 +209,6 @@ Ticket unici indicizzati & 1.817 \\
 \label{tab:r1-summary}
 \end{table}
 
-% ─── R2: Run preliminare ──────────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}llccccc@{}}
-\toprule
-\textbf{Classificatore} & \textbf{Balancing} & \textbf{Precision} & \textbf{Recall} &
-\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
-\midrule
-RandomForest  & None          & 0,73 & 0,52 & 0,94 & 0,58 & 0,88 \\
-RandomForest  & Undersampling & 0,31 & 0,86 & 0,91 & 0,37 & 0,80 \\
-RandomForest  & Oversampling  & 0,61 & 0,66 & 0,94 & 0,59 & 0,87 \\
-NaiveBayes    & None          & 0,35 & 0,29 & 0,79 & 0,26 & 0,54 \\
-NaiveBayes    & Undersampling & 0,34 & 0,32 & 0,76 & 0,26 & 0,53 \\
-NaiveBayes    & Oversampling  & 0,34 & 0,32 & 0,78 & 0,26 & 0,54 \\
-IBk           & None          & 0,53 & 0,51 & 0,75 & 0,47 & 0,56 \\
-IBk           & Undersampling & 0,26 & 0,81 & 0,79 & 0,30 & 0,57 \\
-IBk           & Oversampling  & 0,47 & 0,58 & 0,77 & 0,46 & 0,61 \\
-\bottomrule
-\end{tabular}
-\caption{Risultati del run preliminare (No FS; metriche arrotondate a 2 cifre decimali). I valori con InfoGain e Spearman sono quasi identici per ogni riga.}
-\label{tab:r2-preliminary}
-\end{table}
-
 % ─── R2: Balancing trade-off ──────────────────────────────────────────────────
 \begin{table}[h!]
 \centering
@@ -283,26 +259,6 @@ IBk          & 0,56          & 0,57 & 0,61 \\
 \end{tabular}
 \caption{NPofB20 per classificatore e strategia di balancing. Baseline casuale: $\approx$0,20.}
 \label{tab:r2-npofb20}
-\end{table}
-
-% ─── R2: Best classifier ──────────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}lllccccc@{}}
-\toprule
-\textbf{Clf} & \textbf{FS} & \textbf{Bal.} & \textbf{Prec.} & \textbf{Rec.} &
-\textbf{AUC} & \textbf{Kappa} & \textbf{NPofB20} \\
-\midrule
-RF  & No            & No            & \textbf{0,73} & 0,52 & \textbf{0,94} & 0,58 & \textbf{0,88} \\
-RF  & BackwardSearch & Undersampling & 0,31          & \textbf{0,87} & 0,91 & 0,37 & 0,80 \\
-RF  & No            & SMOTE         & 0,63          & 0,66 & \textbf{0,94} & \textbf{0,61} & \textbf{0,88} \\
-NB  & BackwardSearch & No           & 0,39          & 0,28 & 0,80 & 0,27 & 0,56 \\
-IBk & No            & No            & 0,53          & 0,51 & 0,75 & 0,47 & 0,56 \\
-\bottomrule
-\end{tabular}
-\caption{Configurazioni ottimali per ogni metrica (valori massimi in grassetto).}
-\label{tab:r2-best}
 \end{table}
 
 % ─── R2: RF completo ──────────────────────────────────────────────────────────

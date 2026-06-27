@@ -1,13 +1,79 @@
-\subsection{Milestone 3 -- Analisi controfattuale dell'impatto dei code smell}
+\subsection{Milestone 3 -- Analisi dell’impatto dei code smell}
 
-La Milestone 3 risponde alla domanda: \textit{quante classi buggy avrebbero potuto essere
+La Milestone 3 risponde alla domanda: \textit{quante classi buggy sarebbero potute essere
 prevenute se non avessero avuto code smell?}
 
 \subsubsection{Scelta del classificatore migliore (BClassifier)}
 
-Sulla base dei risultati di M2, il classificatore migliore per uso generale è
-\textbf{RF + No FS + SMOTE}: Kappa massimo ($0{,}61$), AUC e NPofB20 massimi ($0{,}94$,
-$0{,}88$), equilibrio sostenibile tra Precision ($0{,}63$) e Recall ($0{,}66$).
+La scelta di BClassifier è critica: un modello debole farebbe sì che la differenza
+tra le predizioni su B+ e B rifletta il rumore del modello più che l'effetto reale
+degli smell. Dai risultati di M2
+(Tabelle~\ref{tab:r2-rf-full}, \ref{tab:r2-nb-full}, \ref{tab:r2-ibk-full})
+la configurazione \textbf{RF + No FS + SMOTE} emerge come quella con il miglior
+bilanciamento complessivo tra le cinque metriche:
+
+\begin{itemize}[noitemsep]
+  \item \textbf{Kappa $0{,}61$}: con il 9\% di buggy, l'accuracy è fuorviante (predire
+        sempre ``clean'' dà 91\%); Kappa misura il contributo reale oltre il caso.
+        NaiveBayes non supera $0{,}29$: assume l'indipendenza tra feature che non
+        è rispettata, rendendo le predizioni poco affidabili. IBk si ferma a $0{,}47$:
+        con k=1 e 19 feature, la classificazione dipende da un singolo vicino e
+        diventa sensibile al rumore.
+  \item \textbf{Precision $0{,}63$}: il 63\% dei file segnalati come buggy lo è davvero.
+        RF + Undersampling scende a $0{,}31$ perché addestra su un rapporto 50/50
+        mentre la realtà è 9/91: il modello impara a predire buggy più spesso del
+        necessario, gonfiando i falsi positivi. È lo stesso meccanismo che porta
+        RF + Undersampling a Recall $0{,}86$: predire buggy così aggressivamente
+        cattura quasi tutti i difetti reali, ma al costo di segnalare come buggy
+        gran parte del codice pulito.
+  \item \textbf{Recall $0{,}66$}: vengono catturati due terzi dei bug reali.
+        RF senza balancing si ferma a $0{,}52$: con il 9\% di buggy nel training,
+        predire quasi sempre ``clean'' minimizza già l'errore complessivo, rendendo
+        il modello poco sensibile alla classe minoritaria.
+  \item \textbf{AUC $0{,}94$}: RF ottiene un valore quasi ottimale perché la media
+        su 100 alberi produce punteggi interni continui e ben distribuiti, mantenendo
+        un buon trade-off tra bug trovati e falsi allarmi a qualsiasi soglia di
+        classificazione. IBk non supera $0{,}80$: producendo internamente solo $0$ o
+        $1$, ha pochissimi punti sulla curva ROC e non riesce a discriminare tra
+        classi più o meno rischiose.
+  \item \textbf{NPofB20 $0{,}88$}: le classi vengono ordinate dal punteggio interno
+        più alto al più basso; NPofB20 conta quanti bug reali cadono nel primo 20\%.
+        Dipende quindi dalla stessa qualità di ordinamento che determina AUC: un modello
+        con punteggi ben calibrati tende ad avere entrambe le metriche alte.
+        NaiveBayes e IBk si attestano tra $0{,}54$ e $0{,}64$: IBk produce solo
+        $0$ o $1$, rendendo l'ordinamento quasi casuale all'interno dei due gruppi;
+        NaiveBayes produce punteggi poco affidabili perché le sue feature non sono
+        indipendenti come il modello assume.
+\end{itemize}
+
+Tra le strategie di bilanciamento per RF, No balancing e Undersampling sono escluse
+per i motivi discussi sopra. Oversampling e SMOTE producono entrambe risultati
+accettabili su tutte le metriche; SMOTE è preferito per Kappa $0{,}61$ contro
+$0{,}59$ e NPofB20 $0{,}88$ contro $0{,}87$.
+
+Riguardo alla feature selection: il suo scopo non è migliorare le predizioni, ma
+ridurre il numero di feature accettando un peggioramento minimo, semplificando il
+modello. Data l'alta correlazione tra molte feature (LOC\_Touched, Churn e LOC\_Added
+misurano grandezze simili), ridurre le colonne sarebbe in linea con questo principio.
+I metodi filter (InfoGain, Spearman) sono però configurati con soglia $0{,}0$:
+eliminano solo feature con score esattamente zero, e su questo dataset tutte le 19
+hanno InfoGain $> 0$, quindi nessuna viene scartata --- i risultati sono identici
+a No FS. La differenza di $0{,}01$ su Recall tra No FS+SMOTE ($0{,}66$) e
+Spearman/InfoGain+SMOTE ($0{,}67$) è rumore della CV, non un miglioramento reale:
+le tre configurazioni usano esattamente le stesse feature.
+I wrapper (ForwardSearch, BackwardSearch) riducono invece le feature, ma le
+selezionano ottimizzando per NaiveBayes (il classificatore usato internamente),
+non per RF: il sottoinsieme risultante peggiora le metriche di RF rispetto a No FS.
+La scelta di No FS è quindi la più semplice con le metriche più alte: aggiungere
+uno step di FS non porta alcun beneficio, e nel caso dei wrapper peggiora i risultati.
+
+Nella scelta finale è stato dato peso maggiore a \textbf{Kappa} e \textbf{NPofB20}.
+Kappa corregge lo sbilanciamento delle classi e rende il confronto con la baseline
+``predici sempre clean'' significativo: su un dataset al 9\% di buggy è probabilmente
+la metrica più onesta sulla qualità reale del classificatore. NPofB20 è rilevante
+dal punto di vista pratico: in un contesto aziendale reale, il team non ispeziona
+tutto il codice ma si concentra sulle classi più rischiose, e NPofB20 misura
+esattamente quanto sia efficace questa strategia.
 
 \subsubsection{Costruzione dei dataset}
 
