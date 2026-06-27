@@ -59,52 +59,6 @@ Ticket (post-Proportion) & Almeno una AV       & Scarta i ticket per cui Proport
 \label{tab:m1-consistency}
 \end{table}
 
-% ─── M1: Parametri tuning ─────────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}p{0.32\textwidth}p{0.3\textwidth}p{0.3\textwidth}@{}}
-\toprule
-\textbf{Parametro} & \textbf{Prima} & \textbf{Dopo} \\
-\midrule
-Frazione di snapshot processati &
-argomento hardcoded passato a \texttt{computeAll()} &
-\texttt{metrics.snapshotPercentage} in \texttt{config.yaml} \\
-\addlinespace
-File analizzati per invocazione PMD &
-\texttt{static final int BATCH\_SIZE = 100} &
-\texttt{metrics.pmd.batchSize} \\
-\addlinespace
-Frazione core assegnata a PMD &
-\texttt{static final double CPU\_FRACTION = 0.5} &
-\texttt{metrics.pmd.cpuFraction} \\
-\bottomrule
-\end{tabular}
-\caption{Parametri di tuning spostati da costanti hardcoded a \texttt{config.yaml}.}
-\label{tab:m1-tuning}
-\end{table}
-
-% ─── M1: Riorganizzazione cartelle ────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}ll@{}}
-\toprule
-\textbf{Vecchio percorso} & \textbf{Nuovo percorso} \\
-\midrule
-\texttt{output/originalResult/}   & \texttt{output/milestone1/1\_raw\_jira\_data/} \\
-\texttt{output/enrichedResult/}   & \texttt{output/milestone1/2\_enriched\_jira\_data/} \\
-\texttt{output/checkedResult/}    & \texttt{output/milestone1/3\_consistency\_checked/} \\
-\texttt{output/proportionResult/} & \texttt{output/milestone1/4\_proportion\_applied/} \\
-\texttt{output/snapshotResult/}   & \texttt{output/milestone1/5\_snapshots/} \\
-\texttt{output/code/}             & \texttt{output/milestone1/6\_extracted\_source/} \\
-\texttt{output/classifierResult/} & \texttt{output/milestone2/} \\
-\bottomrule
-\end{tabular}
-\caption{Riorganizzazione delle cartelle di output con prefissi numerici descrittivi.}
-\label{tab:m1-folders}
-\end{table}
-
 % ─── M1: Metriche ─────────────────────────────────────────────────────────────
 \begin{table}[h!]
 \centering
@@ -140,53 +94,6 @@ SEXP                         & Commit              & Come EXP, ma i commit-day s
 \label{tab:m1-metrics}
 \end{table}
 
-% ─── M2: Runtime ──────────────────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}lrr@{}}
-\toprule
-\textbf{Configurazione} & \textbf{Combinazioni} & \textbf{Stima (4 thread)} \\
-\midrule
-Default (3 clf $\times$ 3 FS $\times$ 3 bal, SMOTE disabilitato) & 27 & $\approx$35 min \\
-+ SMOTE (3 clf $\times$ 3 FS $\times$ 4 bal) & 36 & $\approx$1 ora \\
-+ ForwardSearch o BackwardSearch & $+$9 ciascuno & $+$9--27 ore \\
-Tutto abilitato (3 clf $\times$ 5 FS $\times$ 4 bal) & 60 & 1--3 giorni \\
-\bottomrule
-\end{tabular}
-\caption{Stime di runtime su hardware mid-range (rfSlots$=1$). I tempi base RF $\approx$757\,s, IBk $\approx$227\,s, NB $\approx$6\,s sono hardware-specifici.}
-\label{tab:m2-runtime}
-\end{table}
-
-% ─── M2: CV vs Walk-Forward ───────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}p{0.25\textwidth}p{0.33\textwidth}p{0.33\textwidth}@{}}
-\toprule
-\textbf{Aspetto} & \textbf{10$\times$10 Cross-Validation} & \textbf{Walk-Forward} \\
-\midrule
-Rispetto della temporalità &
-No --- fold casuali, possibile leakage temporale &
-Sì --- training sempre nel passato \\
-\addlinespace
-Numero di valutazioni &
-100 (10 run $\times$ 10 fold) &
-$\approx$8--9 (una per release) \\
-\addlinespace
-Varianza della stima &
-Bassa --- 100 misure, media stabile &
-Alta --- le prime iterazioni hanno pochissimi dati \\
-\addlinespace
-Correttezza metodologica &
-Compromesso accettato in letteratura &
-Ideale per simulare l'uso reale \\
-\bottomrule
-\end{tabular}
-\caption{Confronto tra 10$\times$10 Cross-Validation e Walk-Forward Validation su OpenJPA ($\approx$11 release con snapshot).}
-\label{tab:m2-cv-vs-wf}
-\end{table}
-
 % ─── R1: Dataset M1 ───────────────────────────────────────────────────────────
 \begin{table}[h!]
 \centering
@@ -207,58 +114,6 @@ Ticket unici indicizzati & 1.817 \\
 \end{tabular}
 \caption{Riepilogo del dataset prodotto per Apache OpenJPA.}
 \label{tab:r1-summary}
-\end{table}
-
-% ─── R2: Balancing trade-off ──────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-\textbf{RF} & \textbf{Precision} & \textbf{Recall} & \textbf{Kappa} \\
-\midrule
-None          & 0,73 & 0,52 & \textbf{0,58} \\
-Undersampling & 0,31 & 0,86 & \textbf{0,37} \\
-Oversampling  & 0,61 & 0,66 & \textbf{0,59} \\
-\bottomrule
-\end{tabular}
-\caption{Effetto del balancing su RandomForest: trade-off Precision/Recall/Kappa.}
-\label{tab:r2-balancing}
-\end{table}
-
-% ─── R2: AUC per classificatore ───────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-\textbf{Classificatore} & \textbf{AUC (None)} & \textbf{AUC (Under)} & \textbf{AUC (Over)} \\
-\midrule
-RandomForest & \textbf{0,94} & 0,91 & 0,94 \\
-NaiveBayes   & 0,79          & 0,76 & 0,78 \\
-IBk          & 0,75          & 0,79 & 0,77 \\
-\bottomrule
-\end{tabular}
-\caption{AUC per classificatore e strategia di balancing.}
-\label{tab:r2-auc}
-\end{table}
-
-% ─── R2: NPofB20 ──────────────────────────────────────────────────────────────
-\begin{table}[h!]
-\centering
-\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-\textbf{Classificatore} & \textbf{NPofB20 (None)} & \textbf{NPofB20 (Under)} &
-\textbf{NPofB20 (Over)} \\
-\midrule
-RandomForest & \textbf{0,88} & 0,80 & 0,87 \\
-NaiveBayes   & 0,54          & 0,53 & 0,54 \\
-IBk          & 0,56          & 0,57 & 0,61 \\
-\bottomrule
-\end{tabular}
-\caption{NPofB20 per classificatore e strategia di balancing. Baseline casuale: $\approx$0,20.}
-\label{tab:r2-npofb20}
 \end{table}
 
 % ─── R2: RF completo ──────────────────────────────────────────────────────────
