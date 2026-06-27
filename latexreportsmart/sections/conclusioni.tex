@@ -4,37 +4,29 @@
 
 La Milestone 1 ha prodotto un dataset di 15.338 snapshot di classi Java per Apache OpenJPA,
 corredato di 19 metriche e dell'etichetta di bugginess. Le scelte metodologiche (filtraggio
-versioni, sanitizzazione ticket, gestione versioni senza tag Git, shift code smell) privilegiano
+versioni, sanitizzazione ticket, gestione versioni senza tag Git) privilegiano
 la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
 
 \subsection{Milestone 2}
 
-Il run completo (60 combinazioni, SMOTE e wrapper abilitati) conferma le evidenze preliminari.
-\textbf{RF + No FS + SMOTE} è la scelta migliore per uso generale: Kappa $0{,}61$ (fascia alta
-della letteratura), AUC $0{,}94$ e NPofB20 $0{,}88$, con equilibrio tra Precision ($0{,}63$)
-e Recall ($0{,}66$). I metodi filter sono un no-op (tutte le 19 feature informative). I wrapper
+\textbf{RF + No FS + SMOTE} è la scelta migliore per uso generale: Kappa $0{,}61$,
+ AUC $0{,}94$ e NPofB20 $0{,}88$, con equilibrio tra Precision ($0{,}63$)
+e Recall ($0{,}66$). I metodi filter sono ininfluenti (tutte le 19 feature informative). I wrapper
 migliorano NaiveBayes marginalmente, sono neutri per RF, misti per IBk. NB rimane limitato
-dalla correlazione strutturale tra LOC\_Touched, Churn e LOC\_Added. Il run su dataset
-aggiuntivi (BOOKKEEPER, KAFKA) non è stato eseguito.
+dalla correlazione strutturale tra LOC\_Touched, Churn e LOC\_Added.
 
 \subsection{Milestone 3}
 
-L'analisi controfattuale mostra un impatto limitato dei code smell: solo 63 classi su 1.378
-bug reali (4,57\%) cambierebbero etichetta, e l'effetto netto è un lieve aumento dei bug
-predetti ($+12$). Le analisi di ridondanza (M3.1) spiegano il perché: NSmells è fortemente
-collineare con le metriche di processo ($\rho = 0{,}78$ con LOC, $> 0{,}65$ con Churn e
-LOC\_Touched) e la sua rimozione lascia Kappa e AUC invariati ($\Delta \approx 0$). Il
-driver principale di bugginess è la storia di modifica del codice, non la qualità strutturale
-misurata tramite PMD \texttt{codestyle}.
+BClassifier (RF + No FS + SMOTE) è accurato: Precision $0{,}63$, Recall $0{,}66$,
+AUC $0{,}94$, Kappa $0{,}61$. Delle 1.378 classi
+effettivamente buggy, solo \textbf{63} (4,57\%) sarebbero potute essere prevenute
+azzerando i code smell, pari al 5,60\% dei bug predetti in B+. Le analisi di ridondanza (M3.1) spiegano il
+perché: NSmells è fortemente correlato con alcune metriche ($\rho = 0{,}78$ con
+LOC, $> 0{,}65$ con Churn e LOC\_Touched) e la sua rimozione lascia Kappa e AUC invariati
+($\Delta \approx 0$).
 
 \subsection{Milestone 4}
 
-Lo Step~8 è completato: PMD su \texttt{4.1.1} con tre filtri (LOC $\geq 100$,
-rimozione di interfacce/astratte, Nsmells $\geq 10$) produce 602 classi candidate. La formula
-basata sul cognome seleziona \textbf{BrokerImpl.java} (rank~3, 1.576 smell strutturali,
-5.510 LOC) e \textbf{LoginDialog.java} (rank~600, 10 smell stilistici, 155 LOC),
-coprendo estremi opposti dello spettro qualitativo. Il report \texttt{smell\_report.txt}
-con violazioni complete e prompt Copilot preconfezionato garantisce la riproducibilità
-dello Step~9. Il refactoring (C\textsubscript{1}--C\textsubscript{4}) e i test sono in
-attesa di esecuzione.
+PMD su \texttt{4.1.1} con tre filtri (LOC $\geq 100$,
+rimozione di interfacce/astratte, Nsmells $\geq 10$) produce 602 classi candidate.
 
