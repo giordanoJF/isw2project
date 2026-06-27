@@ -162,7 +162,7 @@ public class ClassSelectionOrchestrator {
                 w.println("You are an expert Java developer. I want to improve the maintainability of");
                 w.printf("the attached %s class.%n", simpleName);
                 w.printf("Create C_X without changing %s functionality and by removing the%n", simpleName);
-                w.println("following smells (SonarCloud diagnostics):");
+                w.println("following smells (PMD violations):");
                 for (ViolationDetail v : violations) {
                     w.printf("  - [%s / %s] line %d: %s%n",
                             v.ruleSetName(), v.ruleName(), v.beginLine(), v.description());
