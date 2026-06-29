@@ -9,24 +9,75 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
 
 \subsection{Milestone 2}
 
-\textbf{RF + No FS + SMOTE} è la scelta migliore per uso generale: Kappa $0{,}61$,
- AUC $0{,}94$ e NPofB20 $0{,}88$, con equilibrio tra Precision ($0{,}63$)
-e Recall ($0{,}66$). I metodi filter sono ininfluenti (tutte le 19 feature informative). I wrapper
-migliorano NaiveBayes marginalmente, sono neutri per RF, misti per IBk. NB rimane limitato
-dalla correlazione strutturale tra LOC\_Touched, Churn e LOC\_Added.
+\begin{description}
+  \item[\textit{Quale classificatore è più accurato degli altri?}]
+  RF (RandomForest + No FS + SMOTE) domina su tutte e cinque le metriche nella sua
+  configurazione ottimale: Kappa $0{,}61$, AUC $0{,}94$, NPofB20 $0{,}88$, Precision
+  $0{,}63$, Recall $0{,}66$ (Tabelle~\ref{tab:r2-rf-full}--\ref{tab:r2-ibk-full}).
+  NaiveBayes non supera Kappa $0{,}29$ per violazione dell'indipendenza condizionale;
+  IBk si ferma a Kappa $0{,}47$ e NPofB20 $0{,}64$.
+
+  \item[\textit{Il miglior classificatore cambia in base a dataset / numero di release / metrica?}]
+  \textbf{Per dataset}: è stato analizzato un solo progetto (Apache OpenJPA); il confronto
+  tra dataset richiederebbe l'abilitazione di ulteriori progetti in \texttt{config.yaml},
+  che la struttura del CSV di output supporta senza modifiche al codice.
+  \textbf{Per numero di release}: questo test non è stato effettuato --- il progetto usa
+  10$\times$10-fold CV sull'intero dataset con le release mescolate casualmente tra i fold.
+  Per approssimare l'effetto del numero di release in training basterebbe variare il numero
+  di fold (es.\ 5-fold usa l'80\% dei dati in training, 2-fold il 50\%); un controllo
+  rigoroso per release richiederebbe invece una strategia Walk-Forward (train su release
+  1, test su 2; poi train su 1--2, test su 3; ecc.).
+  \textbf{Per metrica}: RF è il migliore su ogni singola metrica --- AUC $0{,}94$ vs
+  $0{,}80$, Kappa $0{,}61$ vs $0{,}47$, NPofB20 $0{,}88$ vs $0{,}64$ rispetto a NB e IBk.
+  La scelta del classificatore non cambia al variare della metrica di riferimento.
+
+  \item[\textit{Quale è il classificatore migliore per una determinata metrica?}]
+  RF è il migliore su AUC, Kappa, NPofB20 e Precision.
+  Per il solo Recall, RF + Undersampling raggiunge $0{,}87$ ma Kappa crolla a $0{,}37$ e
+  Precision a $0{,}31$: il guadagno è illusorio su un dataset al 9\% di buggy.
+  In nessuna configurazione un classificatore diverso da RF supera RF su Kappa o NPofB20
+  (Tabelle~\ref{tab:r2-rf-full}--\ref{tab:r2-ibk-full}).
+\end{description}
 
 \subsection{Milestone 3}
 
-BClassifier (RF + No FS + SMOTE) è accurato: Precision $0{,}63$, Recall $0{,}66$,
-AUC $0{,}94$, Kappa $0{,}61$. Delle 1.378 classi
-effettivamente buggy, solo \textbf{63} (4,57\%) sarebbero potute essere prevenute
-azzerando i code smell, pari al 5,60\% dei bug predetti in B+. Le analisi di ridondanza (M3.1) spiegano il
-perché: NSmells è fortemente correlato con alcune metriche ($\rho = 0{,}78$ con
-LOC, $> 0{,}65$ con Churn e LOC\_Touched) e la sua rimozione lascia Kappa e AUC invariati
-($\Delta \approx 0$).
+\begin{description}
+  \item[\textit{Is BClassifier accurate?}]
+  Sì. In 10$\times$10-fold cross-validation su A, RF + No FS + SMOTE ottiene Precision
+  $0{,}63$, Recall $0{,}66$, AUC $0{,}94$, Kappa $0{,}61$
+  (Tabella~\ref{tab:r2-rf-full}).
+
+  \item[\textit{How many buggy classes could have been prevented by having zero smells?}]
+  I risultati sono in Tabella~\ref{tab:r3-prevention}.
+  \begin{itemize}[noitemsep]
+    \item \textbf{In total}: \textbf{63} classi smettono di essere predette buggy azzerando NSmells.
+    \item \textbf{In proportion}: il \textbf{4,57\%} delle 1.378 classi effettivamente buggy
+          nel dataset A.
+    \item \textbf{Out of the preventable ones}: il \textbf{5,60\%} delle 1.125 classi predette
+          buggy in B+ (quelle con almeno uno smell che il modello giudica difettose).
+  \end{itemize}
+  Il dato più significativo è l'effetto inverso: azzerare NSmells genera anche 75 istanze
+  che passano da CLEAN a BUGGY, per un bilancio netto di $+12$ bug predetti in B rispetto
+  a B+ (Tabella~\ref{tab:r3-datasets}). La causa è la forte correlazione tra NSmells e le
+  metriche di processo ($\rho = 0{,}78$ con LOC, Tabella~\ref{tab:r3-correlation}): azzerare
+  NSmells distorce le distribuzioni delle feature correlate, spingendo il modello verso
+  predizioni inattese.
+\end{description}
 
 \subsection{Milestone 4}
 
-PMD su \texttt{4.1.1} con tre filtri (LOC $\geq 100$,
-rimozione di interfacce/astratte, Nsmells $\geq 10$) produce 602 classi candidate.
+\begin{description}
+  \item[\textit{Does C\textsubscript{X} compile?}]
+  \textbf{[TODO]} Riportare se $C_1$--$C_4$ compilano da soli e integrati con il sistema.
+
+  \item[\textit{Does C\textsubscript{X} have smells?}]
+  \textbf{[TODO]} Indicare per ogni versione: nessuno smell residuo, smell vecchi mantenuti,
+  o nuovi smell introdotti dal refactoring.
+
+  \item[\textit{Is any feature positively correlated with bugginess higher in C\textsubscript{X} than in C\textsubscript{0}?}]
+  \textbf{[TODO]} Se sì, il refactoring potrebbe non aver migliorato la manutenibilità.
+
+  \item[\textit{Is any feature negatively correlated with bugginess higher in C\textsubscript{X} than in C\textsubscript{0}?}]
+  \textbf{[TODO]} Se sì, il refactoring ha probabilmente migliorato la manutenibilità.
+\end{description}
 
