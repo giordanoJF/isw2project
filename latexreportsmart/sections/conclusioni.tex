@@ -42,18 +42,18 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
 \subsection{Milestone 3}
 
 \begin{description}
-  \item[\textit{Is BClassifier accurate?}]
+  \item[\textit{BClassifier è accurato?}]
   Sì. In 10$\times$10-fold cross-validation su A, RF + No FS + SMOTE ottiene Precision
   $0{,}63$, Recall $0{,}66$, AUC $0{,}94$, Kappa $0{,}61$
   (Tabella~\ref{tab:r2-rf-full}).
 
-  \item[\textit{How many buggy classes could have been prevented by having zero smells?}]
+  \item[\textit{Quante classi buggy sarebbero state prevenute in assenza di code smell?}]
   I risultati sono in Tabella~\ref{tab:r3-prevention}.
   \begin{itemize}[noitemsep]
-    \item \textbf{In total}: \textbf{63} classi smettono di essere predette buggy azzerando NSmells.
-    \item \textbf{In proportion}: il \textbf{4,57\%} delle 1.378 classi effettivamente buggy
+    \item \textbf{In totale}: \textbf{63} classi smettono di essere predette buggy azzerando NSmells.
+    \item \textbf{In proporzione}: il \textbf{4,57\%} delle 1.378 classi effettivamente buggy
           nel dataset A.
-    \item \textbf{Out of the preventable ones}: il \textbf{5,60\%} delle 1.125 classi predette
+    \item \textbf{Tra le prevenibili}: il \textbf{5,60\%} delle 1.125 classi predette
           buggy in B+ (quelle con almeno uno smell che il modello giudica difettose).
   \end{itemize}
   Il dato più significativo è l'effetto inverso: azzerare NSmells genera anche 75 istanze
@@ -67,14 +67,14 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
 \subsection{Milestone 4}
 
 \begin{description}
-  \item[\textit{Does C\textsubscript{X} compile?}]
+  \item[\textit{$C_X$ compila?}]
   Sì per tutte le varianti prodotte, sia standalone che integrate nel sistema
   (Tabella~\ref{tab:m4-compile}). Per LoginDialog, C\textsubscript{3} e
   C\textsubscript{4} non sono state create: la dipendenza GWT rende JaCoCo e PIT
   non operativi su questa classe, impedendo la generazione dei test CF e MT su cui
   si basano quelle versioni.
 
-  \item[\textit{Does C\textsubscript{X} have smells?}]
+  \item[\textit{$C_X$ presenta smell?}]
   Sì in tutte le versioni prodotte; nessuna versione azzera gli smell.
   Per \textbf{BrokerImpl}, $C_1$ peggiora ($+9$ smell), mentre $C_2$--$C_4$ migliorano
   marginalmente ($-1$ a $-3$ rispetto ai 1576 di $C_0$).
@@ -82,7 +82,7 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
   (+2), $C_2$ a 14 (+4). Il refactoring di LoginDialog ha introdotto nuovi smell su
   una classe già quasi pulita (Tabella~\ref{tab:m4-metrics}).
 
-  \item[\textit{Is any feature positively correlated with bugginess higher in C\textsubscript{X} than in C\textsubscript{0}?}]
+  \item[\textit{Qualche feature positivamente correlata con la bugginess è aumentata in $C_X$ rispetto a $C_0$?}]
   Sì. Le uniche feature che variano tra versioni sono LOC ($\rho = +0{,}24$) e NSmells
   ($\rho = +0{,}15$), entrambe positivamente correlate con la bugginess.
   Entrambe crescono in BrokerImpl $C_1$ e in tutte le versioni di LoginDialog.
@@ -92,7 +92,7 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
   troppo marginali per attraversare la soglia decisionale del modello
   (Tabella~\ref{tab:m4-correlation}).
 
-  \item[\textit{Is any feature negatively correlated with bugginess higher in C\textsubscript{X} than in C\textsubscript{0}?}]
+  \item[\textit{Qualche feature negativamente correlata con la bugginess è aumentata in $C_X$ rispetto a $C_0$?}]
   No. Le feature negativamente correlate con la bugginess (Avg\_Change\_Set
   $\rho = -0{,}25$, Age $\rho = -0{,}10$, Max\_Change\_Set $\rho = -0{,}07$,
   Change\_Set\_Size $\rho = -0{,}05$) sono tutte metriche aggregate e di commit che dipendono

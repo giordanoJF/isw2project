@@ -33,7 +33,7 @@ su A); le differenze risiedono nel contesto sperimentale:
 
 \begin{enumerate}
 
-\item \textbf{Strumento e ruleset.} Il paper usa \textbf{SonarQube} , in questo progetto si usa invece
+\item \textbf{Strumento e ruleset.} Il paper usa \textbf{SonarQube}, in questo progetto si usa invece
 \textbf{PMD}, dove alcune "regole" rilevano violazioni di stile puro
 (naming, import superflui...) che crescono con la
 dimensione del file. Questo introduce una correlazione artificiale tra NSmells e LOC, che
@@ -44,7 +44,7 @@ l'indipendenza informativa di NSmells.
 quasi nulla con LOC\_touched ($-0{,}01$), NR ($0{,}02$): gli smell sono \textit{indipendenti}
 dalle metriche e il loro contributo al modello è aggiuntivo. In questo progetto
 (Tabella~\ref{tab:r3-correlation}), NSmells correla $\rho = 0{,}78$ con LOC,
-$\rho > 0{,}65$ con Churn, LOC\_Touched, Weighted\_Age.
+$\rho = 0{,}69$ con Churn, LOC\_Touched e Weighted\_Age.
 
 \end{enumerate}
 

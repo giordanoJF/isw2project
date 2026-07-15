@@ -5,8 +5,8 @@ I risultati completi delle 60 combinazioni sono nelle Tabelle~\ref{tab:r2-rf-ful
 
 \subsubsection{Kappa e dataset sbilanciato}
 
-Con il 9\% di istanze buggy, l'accuracy è fuorviante: un classificatore che predice
-sempre ``clean'' ottiene già il 91\% e Kappa $\approx 0$.
+Con il 9\% di istanze buggy (v.\ Sez.~2.2.3), l'accuracy è fuorviante e Kappa
+è la metrica discriminante.
 
 RF assegna a ogni classe un punteggio da 0 a 1 che rappresenta la probabilità stimata
 di essere buggy. AUC $= 0{,}94$ significa che, presa una classe buggy e una clean a
@@ -26,7 +26,7 @@ invece di duplicare, aumentando la variabilità della classe minoritaria in modo
 \subsubsection{NaiveBayes insensibile al bilanciamento}
 
 NB guadagna solo $+3$\, di Recall con Undersampling, contro $+34$\, di RF; Kappa rimane
-$0{,}26$ in tutte le strategie. Il bilanciamento non risolve
+$0{,}26$--$0{,}27$ indipendentemente dalla strategia di bilanciamento. Il bilanciamento non risolve
 il problema strutturale di NB: LOC\_Touched, Churn e LOC\_Added sono fortemente correlate
 tra loro, e NB le tratta come indipendenti.
 

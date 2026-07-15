@@ -97,9 +97,10 @@ con \texttt{isBuggy} calcolata su dataset A.
 
 \paragraph{Feature positivamente correlate con bugginess.}
 Le feature con correlazione positiva più alta sono Max\_LOC\_Added ($\rho = 0{,}24$),
-LOC ($\rho = 0{,}24$), LOC\_Added ($\rho = 0{,}22$) e NSmells ($\rho = 0{,}15$).
-Di queste, solo LOC e NSmells variano tra versioni; tutte le altre sono
-metriche aggregate e di commit, identiche a $C_0$ per costruzione.
+LOC ($\rho = 0{,}24$), LOC\_Added ($\rho = 0{,}22$) e Avg\_LOC\_Added ($\rho = 0{,}21$).
+Sono tutte metriche aggregate e di commit, identiche a $C_0$ per costruzione.
+Tra le 19 feature, solo LOC e NSmells variano tra versioni; NSmells presenta
+$\rho = 0{,}15$ con \texttt{isBuggy} (undicesima nella classifica complessiva).
 
 LOC cresce rispetto a $C_0$ in BrokerImpl $C_1$ ($+34$), $C_3$ ($+10$), $C_4$ ($+20$)
 e in entrambe le versioni di LoginDialog ($+14$ e $+6$). Solo BrokerImpl $C_2$ scende

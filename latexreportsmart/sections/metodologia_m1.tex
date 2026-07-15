@@ -11,8 +11,11 @@ lo scarto avviene nei check di consistenza descritti nella sezione successiva
 (Tabella~\ref{tab:m1-consistency}), che riducono la lista a \textbf{42 versioni valide}.
 Solo dopo questo filtraggio si applica il taglio al \textbf{primo 33\% in ordine
 cronologico} (14 su 42): le release più recenti tendono a contenere bug non ancora
-scoperti né corretti al momento dell'analisi (\textit{snoring bugs}). 3 versioni sono prive di tag Git e vengono
-saltate \emph{non} venendo sostituite con altre nel conteggio del 33\%, sempre per motivazione snoring.\\
+scoperti né corretti al momento dell'analisi (\textit{snoring bugs}).
+3 versioni di OpenJPA sono prive di tag Git per motivi storici (il progetto era su SVN
+in quell'epoca, v.\ sezione seguente) e vengono saltate senza rimpiazzo: compensare le
+mancanti avrebbe richiesto di attingere a release più recenti, avvicinandosi alla
+zona temporale soggetta a \textit{snoring} — contraddicendo la ragione stessa del taglio al 33\%.
 
 
 Per i ticket, il filtro JQL
@@ -36,9 +39,10 @@ e~\ref{tab:m1-consistency}.
 Per i ticket ancora privi di AV dopo l'arricchimento, le AV vengono stimate tramite
 \textbf{Proportion} con approccio \emph{cold start}:
 \[
-P = \text{mean}\!\left(\frac{FV - IV}{FV - OV}\right), \qquad IV_{\text{stimata}} = FV - P \cdot (FV - OV)
+P = \text{mean}_{t \,\in\, T_{\text{noti}}}\!\left(\frac{FV_t - IV_t}{FV_t - OV_t}\right), \qquad IV_{\text{stimata}} = FV - P \cdot (FV - OV)
 \]
-I ticket con $FV = OV$ o con IV stimata $= FV$ vengono scartati.
+dove $T_{\text{noti}}$ è l'insieme dei ticket con AV già nota (IV osservata); $IV_{\text{stimata}}$
+si applica ai soli ticket privi di AV. I ticket con $FV = OV$ o con IV stimata $= FV$ vengono scartati.
 
 \subsubsection{Estrazione snapshot Git}
 
