@@ -1,7 +1,7 @@
 \subsection{Milestone 4 -- Refactoring automatizzato}
 
 La Milestone 4 valuta l'efficacia del refactoring automatizzato via LLM su classi
-Java di OpenJPA, a partire dalla selezione delle classi fino alla produzione di versioni refactored con requisiti progressivamente più stringenti
+Java di OpenJPA, dalla selezione delle classi alla produzione di versioni refactored con requisiti via via più stringenti
 (Tabella~\ref{tab:m4-versions}).
 
 \subsubsection{Selezione delle classi}
@@ -61,7 +61,7 @@ senza copia diretta da $C_0$: i risultati coincidono.
 Il best model (RF + No FS + SMOTE) viene addestrato su dataset A e applica la predizione
 di \texttt{isBuggy} a ogni riga di $C_X$.
 Poiché le versioni refactorizzate appartengono alla release \texttt{4.1.1}, esclusa
-dal dataset A (primo 33\% delle release), non si presenta alcun leakage --- a differenza
+dal dataset A (primo 33\% delle release), non si presenta alcun leakage, a differenza
 della M3 dove BClassifierA prediva su A in-sample.
 La correlazione Spearman tra ogni feature e \texttt{isBuggy} è calcolata su dataset A
 e fornisce la ``direzione'' di ogni metrica: le feature con correlazione positiva

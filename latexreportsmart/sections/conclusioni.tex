@@ -21,13 +21,13 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
   \textbf{Per dataset}: è stato analizzato un solo progetto (Apache OpenJPA); il confronto
   tra dataset richiederebbe l'abilitazione di ulteriori progetti in \texttt{config.yaml},
   che la struttura del CSV di output supporta senza modifiche al codice.
-  \textbf{Per numero di release}: questo test non è stato effettuato --- il progetto usa
+  \textbf{Per numero di release}: questo test non è stato effettuato: il progetto usa
   10$\times$10-fold CV sull'intero dataset con le release mescolate casualmente tra i fold.
   Per approssimare l'effetto del numero di release in training basterebbe variare il numero
   di fold (es.\ 5-fold usa l'80\% dei dati in training, 2-fold il 50\%); un controllo
   rigoroso per release richiederebbe invece una strategia Walk-Forward (train su release
   1, test su 2; poi train su 1--2, test su 3; ecc.).
-  \textbf{Per metrica}: RF è il migliore su ogni singola metrica --- AUC $0{,}94$ vs
+  \textbf{Per metrica}: RF è il migliore su ogni singola metrica: AUC $0{,}94$ vs
   $0{,}80$, Kappa $0{,}61$ vs $0{,}47$, NPofB20 $0{,}88$ vs $0{,}64$ rispetto a NB e IBk.
   La scelta del classificatore non cambia al variare della metrica di riferimento.
 
@@ -56,7 +56,7 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
     \item \textbf{Tra le prevenibili}: il \textbf{5,60\%} delle 1.125 classi predette
           buggy in B+ (quelle con almeno uno smell che il modello giudica difettose).
   \end{itemize}
-  Il dato più significativo è l'effetto inverso: azzerare NSmells genera anche 75 istanze
+  L'effetto più rilevante è però inverso: azzerare NSmells genera anche 75 istanze
   che passano da CLEAN a BUGGY, per un bilancio netto di $+12$ bug predetti in B rispetto
   a B+ (Tabella~\ref{tab:r3-datasets}). La causa è la forte correlazione tra NSmells e le
   metriche di processo ($\rho = 0{,}78$ con LOC, Tabella~\ref{tab:r3-correlation}): azzerare
@@ -86,10 +86,8 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
   Sì. Le uniche feature che variano tra versioni sono LOC ($\rho = +0{,}24$) e NSmells
   ($\rho = +0{,}15$), entrambe positivamente correlate con la bugginess.
   Entrambe crescono in BrokerImpl $C_1$ e in tutte le versioni di LoginDialog.
-  Questo è un segnale potenzialmente negativo: il profilo di rischio peggiora
-  leggermente rispetto a $C_0$.
-  Tuttavia la predizione rimane \texttt{false} in tutti i casi: le variazioni sono
-  troppo marginali per attraversare la soglia decisionale del modello
+  Il profilo di rischio peggiora quindi leggermente rispetto a $C_0$, senza però
+  attraversare la soglia decisionale: la predizione rimane \texttt{false} in tutti i casi
   (Tabella~\ref{tab:m4-correlation}).
 
   \item[\textit{Qualche feature negativamente correlata con la bugginess è aumentata in $C_X$ rispetto a $C_0$?}]
@@ -99,7 +97,7 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
   dalla storia git della classe. Poiché il refactoring non altera la storia git, queste
   metriche sono identiche tra $C_0$ e ogni $C_X$: non si osserva alcun miglioramento
   sul fronte delle feature associate a minore bugginess.
-  A differenza della M3 --- dove BClassifierA prediva in-sample su dataset A ---
+  A differenza della M3, dove BClassifierA prediva in-sample su dataset A,
   qui non si presenta leakage: le versioni refactorizzate appartengono alla release
   \texttt{4.1.1}, esterna al dataset A.
 \end{description}

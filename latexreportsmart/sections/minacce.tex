@@ -9,7 +9,7 @@ altri motivi producono falsi positivi. Entrambe le direzioni distorcono il tasso
 
 \paragraph{Proportion e Fix Version come Affected Version.}
 Proportion introduce rumore; per ridurne il ricorso, i ticket privi di AV vengono arricchiti
-con le FV tranne l'ultima. Questa scelta introduce rumore.
+con le FV tranne l'ultima, ma anche questa stima è imprecisa.
 
 \paragraph{Release senza tag Git.}
 Tre versioni Jira senza tag Git sono escluse, con possibile sottostima della bugginess
@@ -27,7 +27,7 @@ potrebbe migliorare i risultati.
 
 \paragraph{Classificatore interno dei metodi wrapper.}
 I wrapper usano NaiveBayes internamente: il subset ottimale per NB può non esserlo per RF
-o IBk, come evidenziato nei risultati.
+o IBk (v.\ risultati M2).
 
 \subsection{Milestone 3}
 

@@ -75,10 +75,9 @@ Java~11 indipendentemente dal JDK usato per la compilazione.
 Nessuna versione azzera completamente gli smell.
 I conteggi completi per versione sono in Tabella~\ref{tab:m4-metrics}.
 
-È importante notare che il conteggio totale di smell non cattura i movimenti interni:
-anche in versioni in cui il totale aumenta, alcuni smell originali possono essere stati
-risolti e altri nuovi introdotti dalla riscrittura. Il confronto è quindi da intendere
-come bilancio netto, non come assenza di miglioramenti parziali.
+Il conteggio totale di smell non cattura i movimenti interni: anche quando il totale
+aumenta, alcuni smell originali possono essere stati rimossi e altri nuovi introdotti.
+Il confronto va letto come bilancio netto, non come assenza di miglioramenti parziali.
 
 \textbf{BrokerImpl} ($C_0$: 1576 smell). $C_1$ presenta un bilancio netto di $+9$
 smell (1585); $C_2$ scende a 1575 ($-1$ rispetto a $C_0$); $C_3$ e $C_4$ raggiungono
@@ -107,9 +106,8 @@ e in entrambe le versioni di LoginDialog ($+14$ e $+6$). Solo BrokerImpl $C_2$ s
 leggermente ($-12$). NSmells cresce in BrokerImpl $C_1$ (+9) e in tutte le versioni di
 LoginDialog; si riduce marginalmente in BrokerImpl $C_2$--$C_4$.
 
-Il quadro indica che il refactoring, nella maggior parte delle varianti, ha fatto
-crescere le feature positivamente correlate con la bugginess: potenziale segnale
-di un lieve peggioramento del profilo di rischio.
+Nella maggior parte delle varianti, il refactoring ha aumentato le feature positivamente
+correlate con la bugginess, con un lieve peggioramento del profilo di rischio.
 
 \paragraph{Feature negativamente correlate con bugginess.}
 La feature più negativamente correlata è Avg\_Change\_Set ($\rho = -0{,}25$), seguita
