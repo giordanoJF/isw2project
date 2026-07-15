@@ -9,22 +9,10 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 /**
- * Performs a full clone of a remote Git repository using JGit.
+ * Performs a full clone of a remote Git repository using JGit (no git CLI required).
  *
- * WHY JGIT INSTEAD OF THE GIT CLI:
- * Invoking `git clone` via ProcessBuilder would require the git command-line tool
- * to be installed on the machine running this project. JGit is a pure Java
- * implementation of the Git protocol (no native binary required), so the clone works
- * on any machine that has a JVM, regardless of whether git is installed.
- *
- * WHY FULL CLONE (no depth limit):
- * CommitIndexService and GitLogStatsService scan the entire commit history to build
- * bug-fix and file-change indexes. A shallow clone exposes only a handful of commits,
- * causing those services to label nearly all files as buggy (observed: ~60% instead
- * of the expected ~9% with a complete history). The download is larger but required.
- *
- * No authentication is required: the target repository is public and is accessed
- * over plain HTTPS.
+ * The clone must be full (no depth limit): CommitIndexService and GitLogStatsService
+ * scan the entire history; a shallow clone produced ~60% buggy rate instead of ~9%.
  */
 public class RepoCloneService {
 

@@ -17,16 +17,9 @@ import com.isw2project.csv.CsvWriterService;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
- * Standalone entry point for Milestone 2.
- *
- * Reads the snapshot CSV produced by Milestone 1 from disk (path configured in
- * config.yaml under classifier.inputCsv) and runs the full classifier evaluation
- * pipeline without executing any Milestone 1 step.
- *
- * If config.yaml has parallelism.interactive = true, the user is prompted at
- * startup to choose thread counts; otherwise the values in config.yaml are used
- * (integers or percentages, e.g. "8" or "50%").
- *
+ * Entry point for Milestone 2. Reads the snapshot CSV from Milestone 1 and evaluates
+ * all classifier combinations. Set parallelism.interactive = true in config.yaml
+ * to choose thread counts at startup instead of using the configured values.
  */
 public class Milestone2Main {
 

@@ -9,13 +9,7 @@ import java.io.File;
 
 /**
  * Ensures that the project repository is available locally before Milestone 1 runs.
- *
- * Checks whether the target directory already contains a Git repository (.git folder).
- * If it does, the clone is skipped - subsequent runs do not re-download the repo.
- * If it does not, delegates the actual clone to RepoCloneService.
- *
- * The clone URL and target directory are read from GitConfig (config.yaml), keeping
- * this class free of hardcoded paths or URLs.
+ * Skips the clone if a .git folder already exists in the target directory.
  */
 public class RepoCloneOrchestrator {
 

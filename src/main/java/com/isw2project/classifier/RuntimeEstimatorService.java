@@ -49,8 +49,7 @@ public class RuntimeEstimatorService {
 
     private static final Logger log = LoggerFactory.getLogger(RuntimeEstimatorService.class);
 
-    // Base seconds per combination with NONE FS and NONE balancing
-    // Source: measured run (see calibration history above)
+    // Base seconds per combination with NONE FS and NONE balancing (from measured run)
     private static final int BASE_RF  = 757;
     private static final int BASE_IBK = 227;
     private static final int BASE_NB  =   6;
@@ -62,7 +61,7 @@ public class RuntimeEstimatorService {
     // FS overhead for wrapper methods (source: config.yaml "estimated 1-3 hours")
     private static final int WRAPPER_OVERHEAD_S = 3600; // lower bound
 
-    // Balancing multipliers (source: calibrated from actual run - see header)
+    // Balancing multipliers (from measured run)
     private static final double UNDERSAMPLING_MULT = 0.20; // 5x speedup
     private static final double OVERSAMPLING_MULT  = 1.65;
     private static final double SMOTE_MULT         = 2.00; // estimated, not measured

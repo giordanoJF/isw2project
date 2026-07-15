@@ -5,7 +5,6 @@ import java.util.List;
 
 /**
  * Holds all downloaded data for a single Jira project.
- * This is the main data structure that will be passed around and enriched in future steps.
  */
 public class ProjectData {
 

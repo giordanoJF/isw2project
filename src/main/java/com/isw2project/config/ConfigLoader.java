@@ -9,7 +9,6 @@ import java.io.InputStream;
 
 /**
  * Loads the application configuration from a YAML file on the classpath.
- * Uses the Strategy pattern implicitly - swap this class to support other formats.
  */
 public class ConfigLoader {
 

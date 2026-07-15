@@ -5,13 +5,7 @@ import java.util.Map;
 
 /**
  * Maps a completed evaluation result to a CSV row (LinkedHashMap preserves column order).
- *
- * This class lives in the classifier package rather than in csv (where the other
- * *CsvRowMapperService classes reside) to avoid a circular dependency: classifier already
- * imports CsvWriterService from csv, so moving this class to csv would create a
- * csv -> classifier back-edge for ClassifierType, FeatureSelectionStrategy, and
- * BalancingStrategy. Keeping it here breaks that cycle at the cost of a minor
- * stylistic inconsistency with the other row mappers.
+ * Kept in classifier rather than csv to avoid a classifier ↔ csv dependency cycle.
  */
 public class ClassifierResultRowMapperService {
 
