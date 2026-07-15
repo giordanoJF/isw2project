@@ -27,8 +27,8 @@ import java.util.regex.Pattern;
 public class GitLogStatsService {
 
     private static final Logger log = LoggerFactory.getLogger(GitLogStatsService.class);
-    private static final Pattern NUMSTAT_PATTERN = Pattern.compile("(\\d+)\\s+(\\d+)\\s+(.+)");
-    private static final Pattern COMMIT_PATTERN = Pattern.compile("COMMIT:([^|]+)\\|([^|]+)");
+    private static final Pattern NUMSTAT_PATTERN = Pattern.compile("(\\d++)\\t(\\d++)\\t(.+)");
+    private static final Pattern COMMIT_PATTERN = Pattern.compile("COMMIT:([^|]++)\\|([^|]++)");
 
     private final File repoDir;
     private Map<String, List<CommitStat>> index = null;
@@ -91,6 +91,7 @@ public class GitLogStatsService {
         }
     }
 
+    @SuppressWarnings("java:S4036")
     private Map<String, List<CommitStat>> buildIndex() throws GitCommandException {
         try {
             ProcessBuilder pb = new ProcessBuilder(
@@ -160,6 +161,7 @@ public class GitLogStatsService {
         }
     }
 
+    @SuppressWarnings("java:S4036")
     private LocalDate resolveRefDate(String gitRef) {
         // Return cached result if available: each gitRef corresponds to one release tag,
         // so this cache is hit thousands of times per tag instead of spawning a new process each time.

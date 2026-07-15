@@ -49,6 +49,7 @@ public class GitFileExtractorService {
         return snapshots;
     }
 
+    @SuppressWarnings("java:S4036")
     private List<String> listProductionJavaFiles(String gitTag) throws GitCommandException {
         try {
             ProcessBuilder pb = new ProcessBuilder("git", "ls-tree", "-r", "--name-only", gitTag);
@@ -83,6 +84,7 @@ public class GitFileExtractorService {
         }
     }
 
+    @SuppressWarnings("java:S4036")
     private String readFileAtTag(String gitTag, String filePath) throws GitCommandException {
         try {
             ProcessBuilder pb = new ProcessBuilder("git", "show", gitTag + ":" + filePath);

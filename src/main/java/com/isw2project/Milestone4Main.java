@@ -1,19 +1,21 @@
 package com.isw2project;
 
+import com.isw2project.classifier.BalancingBuilderService;
+import com.isw2project.classifier.ClassifierBuilderService;
+import com.isw2project.classifier.FeatureSelectionBuilderService;
+import com.isw2project.classifier.WekaDatasetService;
 import com.isw2project.config.AppConfig;
 import com.isw2project.config.ConfigLoader;
 import com.isw2project.config.RefactoringConfig;
+import com.isw2project.csv.CsvWriterService;
 import com.isw2project.gitextractor.GitFileExtractorService;
 import com.isw2project.gitextractor.JavaClassFilterService;
-import com.isw2project.refactoring.ClassSelectionOrchestrator;
-import com.isw2project.refactoring.ClassSelectorService;
-import com.isw2project.refactoring.ClassSizeFilterService;
-import com.isw2project.refactoring.NsmellsService;
-import com.isw2project.refactoring.ReleaseSourceService;
-import com.isw2project.refactoring.SmellDetailService;
+import com.isw2project.refactoring.*;
+import com.isw2project.whatif.CorrelationService;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
+import java.nio.file.Path;
 
 public class Milestone4Main {
 
@@ -34,13 +36,32 @@ public class Milestone4Main {
                 classFilter
         );
 
-        ClassSelectionOrchestrator orchestrator = new ClassSelectionOrchestrator(
+        NsmellsService nsmellsService = new NsmellsService(classFilter);
+
+        ClassSelectionOrchestrator selectionOrchestrator = new ClassSelectionOrchestrator(
                 new ReleaseSourceService(gitExtractor),
-                new NsmellsService(classFilter),
+                nsmellsService,
                 new ClassSizeFilterService(),
                 new ClassSelectorService(),
                 new SmellDetailService()
         );
-        orchestrator.run(refactoring, batchSize, cpuFraction);
+        selectionOrchestrator.run(refactoring, batchSize, cpuFraction);
+
+        File repoDir = new File(config.getGit().getRepoDir());
+        Path refactoredDir = Path.of(refactoring.getRefactoredClassesDir());
+
+        WekaDatasetService datasetService = new WekaDatasetService();
+        ClassifierBuilderService classifierBuilder = new ClassifierBuilderService(
+                new FeatureSelectionBuilderService(),
+                new BalancingBuilderService()
+        );
+
+        RefactoringAnalysisOrchestrator analysisOrchestrator = new RefactoringAnalysisOrchestrator(
+                new RefactoredMetricsService(repoDir, refactoredDir, nsmellsService, batchSize, cpuFraction),
+                new RefactoredPredictorService(datasetService, classifierBuilder),
+                new BugginessCorrelationService(datasetService, new CorrelationService()),
+                new CsvWriterService()
+        );
+        analysisOrchestrator.run(refactoring);
     }
 }

@@ -7,12 +7,117 @@ classi astratte, Nsmells $\geq 10$), produce \textbf{602 classi} concrete ordina
 Nsmells decrescente. Le due classi selezionate sono
 riportate in Tabella~\ref{tab:m4-selected}.
 
+\subsubsection{Versioni prodotte}
 
-\subsubsection{Refactoring e analisi (C\textsubscript{1}--C\textsubscript{4})}
+Per \textbf{BrokerImpl} sono state prodotte tutte e quattro le varianti refactorizzate
+(C\textsubscript{1}--C\textsubscript{4}), con test progressivamente più completi come
+descritto in Tabella~\ref{tab:m4-versions}.
 
-% TODO: compilare dopo aver prodotto C_1--C_4 e scritto i test.
-% Per ogni versione riportare:
-%   - compila? (da solo e con il sistema)
-%   - smell residui: quanti, nuovi o vecchi?
-%   - feature bugginess-positive più alte in C_X rispetto a C_0? (indicatore negativo)
-%   - feature bugginess-negative più alte in C_X rispetto a C_0? (indicatore positivo)
+Per \textbf{LoginDialog} sono state prodotte solo C\textsubscript{1} e
+C\textsubscript{2}. C\textsubscript{3} e C\textsubscript{4} non sono state create
+perché richiedono test Control Flow (CF) generati da JaCoCo e test Mutation Testing
+(MT) generati da PIT. LoginDialog dipende da GWT (\textit{Google Web Toolkit}), il
+cui framework UI è incompatibile con entrambi gli strumenti: JaCoCo e PIT falliscono
+senza produrre output utilizzabile, rendendo impossibile la generazione dei test
+necessari per costruire C\textsubscript{3} e C\textsubscript{4}.
+
+\subsubsection{Compilazione}
+
+Tutte le varianti prodotte compilano correttamente, sia in modalità standalone
+(singolo file con classpath del modulo) sia integrate nel sistema (build Maven del
+modulo). I risultati sono riassunti in Tabella~\ref{tab:m4-compile}.
+
+\paragraph{Comandi utilizzati.}
+
+Compilazione standalone, con classpath Maven pre-generato:
+
+\begin{verbatim}
+# BrokerImpl (modulo openjpa-kernel)
+mvn -pl openjpa-kernel dependency:build-classpath \
+    -Dmdep.outputFile=cp_kernel.txt
+javac -d out \
+    -cp "openjpa-kernel/target/classes:$(cat cp_kernel.txt)" \
+    BrokerImpl.java
+
+# LoginDialog (modulo openjpa-examples/opentrader)
+cd openjpa-examples/opentrader
+mvn dependency:build-classpath -Dmdep.outputFile=cp_opentrader.txt
+javac -d out -cp "target/classes:$(cat cp_opentrader.txt)" LoginDialog.java
+\end{verbatim}
+
+Compilazione integrata nel sistema (sostituzione temporanea del sorgente, ripristino
+dell'originale dopo la verifica):
+
+\begin{verbatim}
+# BrokerImpl
+mvn -pl openjpa-kernel compile
+
+# LoginDialog
+cd openjpa-examples/opentrader && mvn compile
+\end{verbatim}
+
+\paragraph{Note sul modulo opentrader.}
+Il modulo \texttt{openjpa-examples/opentrader} non fa parte del reactor Maven principale
+di OpenJPA: \texttt{openjpa-examples/pom.xml} dichiara come \texttt{<module>} solo
+\texttt{simple}, \texttt{image-gallery} e \texttt{openbooks}. Di conseguenza
+LoginDialog va sempre compilato puntando direttamente al suo modulo; un
+\texttt{mvn compile} dalla radice non lo include, né per C\textsubscript{0} né per le
+varianti refactorizzate.
+
+\paragraph{Versione Java.}
+Il compilatore usato è JDK 26.0.1, ma il bytecode target è Java~11, forzato dal
+\texttt{pom.xml} radice tramite \texttt{<release>\$\{java.class.version\}</release>}
+(\texttt{java.class.version=11}). Le classi prodotte sono quindi compatibili
+Java~11 indipendentemente dal JDK usato per la compilazione.
+
+\subsubsection{Smell residui}
+
+Nessuna versione azzera completamente gli smell.
+I conteggi completi per versione sono in Tabella~\ref{tab:m4-metrics}.
+
+È importante notare che il conteggio totale di smell non cattura i movimenti interni:
+anche in versioni in cui il totale aumenta, alcuni smell originali possono essere stati
+risolti e altri nuovi introdotti dalla riscrittura. Il confronto è quindi da intendere
+come bilancio netto, non come assenza di miglioramenti parziali.
+
+\textbf{BrokerImpl} ($C_0$: 1576 smell). $C_1$ presenta un bilancio netto di $+9$
+smell (1585); $C_2$ scende a 1575 ($-1$ rispetto a $C_0$); $C_3$ e $C_4$ raggiungono
+1573 ($-3$). Le versioni con più test nel prompt ottengono risultati leggermente
+migliori, ma la riduzione rimane marginale rispetto al totale.
+
+\textbf{LoginDialog} ($C_0$: 10 smell). Entrambe le versioni presentano un bilancio
+netto negativo: $C_1$ sale a 12 (+2), $C_2$ a 14 (+4). Il refactoring ha introdotto
+più smell di quanti ne abbia rimossi su una classe già quasi pulita.
+
+\subsubsection{Analisi delle feature rispetto a C\textsubscript{0}}
+
+La Tabella~\ref{tab:m4-metrics} riporta tutte le metriche per ogni versione.
+La Tabella~\ref{tab:m4-correlation} riporta la correlazione Spearman di ogni feature
+con \texttt{isBuggy} calcolata su dataset A.
+
+\paragraph{Feature positivamente correlate con bugginess.}
+Le feature con correlazione positiva più alta sono Max\_LOC\_Added ($\rho = 0{,}24$),
+LOC ($\rho = 0{,}24$), LOC\_Added ($\rho = 0{,}22$) e NSmells ($\rho = 0{,}15$).
+Di queste, solo LOC e NSmells variano tra versioni; tutte le altre sono
+metriche aggregate e di commit, identiche a $C_0$ per costruzione.
+
+LOC cresce rispetto a $C_0$ in BrokerImpl $C_1$ ($+34$), $C_3$ ($+10$), $C_4$ ($+20$)
+e in entrambe le versioni di LoginDialog ($+14$ e $+6$). Solo BrokerImpl $C_2$ scende
+leggermente ($-12$). NSmells cresce in BrokerImpl $C_1$ (+9) e in tutte le versioni di
+LoginDialog; si riduce marginalmente in BrokerImpl $C_2$--$C_4$.
+
+Il quadro indica che il refactoring, nella maggior parte delle varianti, ha fatto
+crescere le feature positivamente correlate con la bugginess: potenziale segnale
+di un lieve peggioramento del profilo di rischio.
+
+\paragraph{Feature negativamente correlate con bugginess.}
+La feature più negativamente correlata è Avg\_Change\_Set ($\rho = -0{,}25$), seguita
+da Age ($\rho = -0{,}10$), Max\_Change\_Set ($\rho = -0{,}07$) e Change\_Set\_Size
+($\rho = -0{,}05$). Tutte sono metriche aggregate e di commit: non variano tra $C_0$ e $C_X$.
+Nessun miglioramento è osservabile su questo fronte.
+
+\paragraph{Predizione.}
+Il modello predice \texttt{isBuggy = false} per tutte le versioni, incluso $C_0$.
+Questo è coerente con il fatto che la release \texttt{4.1.1} è esterna al dataset A:
+il modello non ha mai visto questi snapshot in training. Le variazioni marginali di LOC
+e NSmells non sono sufficienti a spostare la predizione verso \texttt{true}.

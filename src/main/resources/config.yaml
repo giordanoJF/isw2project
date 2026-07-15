@@ -138,3 +138,5 @@ refactoring:
   # Selection formula: first name Giordano -> G = 7th letter -> X = 7 mod 5 = 2
   # Case 2: select class at rank (X+1) and class at rank (N-X).
   selectionX: 2
+  inputCsv: "output/milestone1/5_snapshots/OPENJPA_snapshots.csv"
+  refactoredClassesDir: "classi_refactored"

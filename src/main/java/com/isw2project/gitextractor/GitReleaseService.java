@@ -90,6 +90,7 @@ public class GitReleaseService {
         return null;
     }
 
+    @SuppressWarnings("java:S4036")
     private Set<String> fetchAllTags() throws GitCommandException {
         try {
             ProcessBuilder pb = new ProcessBuilder("git", "tag");

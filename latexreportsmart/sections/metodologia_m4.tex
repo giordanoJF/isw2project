@@ -36,4 +36,36 @@ Per ogni classe si produce la sequenza $C_0 \!\to\! C_1 \!\to\! C_2 \!\to\! C_3
 \!\to\! C_4$ (Tabella~\ref{tab:m4-versions}) fornendo all'LLM il codice originale,
 le violazioni PMD e i test in modo incrementale.
 Il prompt impone: rimozione degli smell indicati senza alterare la funzionalità,
-superamento dei test forniti, nessuna modifica aggiuntiva, compatibilità con il sistema.
+superamento dei test originali forniti, nessuna modifica aggiuntiva, compatibilità con il sistema.
+
+\subsubsection{Analisi quantitativa delle versioni refactorizzate}
+
+Per quantificare l'effetto del refactoring, per ogni versione $C_X$ vengono calcolate
+le stesse 19 metriche usate in M1.
+
+\paragraph{Metriche puntuali (LOC, NSmells).}
+LOC è calcolato direttamente sul sorgente fisico di $C_X$; NSmells è ottenuto rieseguendo
+PMD sullo stesso file. Queste sono le \emph{uniche} metriche che variano tra versioni.
+
+
+\paragraph{Metriche aggregate e di commit.}
+Le 17 metriche aggregate e di commit (NR, Age, Churn, EXP, ecc.) dipendono dalla storia git
+della classe, ottenuta tramite il path nel repository (\texttt{classPath}).
+Poiché il refactoring modifica il contenuto del file ma non la storia git,
+il \texttt{classPath} di ogni $C_X$ è identico a quello di $C_0$: queste metriche
+sono quindi \emph{identiche per costruzione} tra tutte le versioni.
+Questo è stato verificato empiricamente ricalcolando tutte le metriche per ogni $C_X$
+senza copia diretta da $C_0$: i risultati coincidono.
+
+\paragraph{Predizione e correlazione.}
+Il best model (RF + No FS + SMOTE) viene addestrato su dataset A e applica la predizione
+di \texttt{isBuggy} a ogni riga di $C_X$.
+Poiché le versioni refactorizzate appartengono alla release \texttt{4.1.1}, esclusa
+dal dataset A (primo 33\% delle release), non si presenta alcun leakage --- a differenza
+della M3 dove BClassifierA prediva su A in-sample.
+La correlazione Spearman tra ogni feature e \texttt{isBuggy} è calcolata su dataset A
+e fornisce la ``direzione'' di ogni metrica: le feature con correlazione positiva
+indicano maggiore probabilità di bugginess se più alte; quelle negative l'opposto.
+Confrontando queste direzioni con le variazioni $C_X - C_0$ si valuta se il refactoring
+ha migliorato o peggiorato il profilo predittivo della classe
+(Tabella~\ref{tab:m4-metrics}).

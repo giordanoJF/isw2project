@@ -303,6 +303,29 @@ $\Delta$ (senza $-$ con)      & $-1$ & $+0{,}004$ & $\approx 0$ & $\approx 0$ & 
 \label{tab:r3-ablation}
 \end{table}
 
+% ─── M4: Compilazione ─────────────────────────────────────────────────────────
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Versione} & \multicolumn{2}{c}{\textbf{BrokerImpl}} & \multicolumn{2}{c}{\textbf{LoginDialog}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Standalone & Integrata & Standalone & Integrata \\
+\midrule
+C\textsubscript{0} (originale) & N/A & N/A & N/A & N/A \\
+C\textsubscript{1}             & Sì  & Sì  & Sì  & Sì  \\
+C\textsubscript{2}             & Sì  & Sì  & Sì  & Sì  \\
+C\textsubscript{3}             & Sì  & Sì  & n.p. & n.p. \\
+C\textsubscript{4}             & Sì  & Sì  & n.p. & n.p. \\
+\bottomrule
+\end{tabular}
+\caption{Esito della compilazione per BrokerImpl e LoginDialog, standalone e integrata
+         nel sistema. n.p.\ = versione non prodotta (dipendenza GWT incompatibile con
+         JaCoCo e PIT, test CF/MT non generabili).}
+\label{tab:m4-compile}
+\end{table}
+
 % ─── M4: Versioni refactored ──────────────────────────────────────────────────
 \begin{table}[h!]
 \centering
@@ -336,6 +359,70 @@ $C_4$ & Refactored & BB + CF + Mutation Testing (MT) \\
 \end{tabular}
 \caption{Classi selezionate da \texttt{4.1.1} con formula $X=2$
          (G $\Rightarrow$ 7 mod 5 = 2, caso 2: rank $1{+}X$ e rank $N{-}X$).
-         $N = 602$ classi dopo filtri LOC $\geq 100$, non-istanziabili, Nsmells $\geq 10$.}
+         $N = 602$ classi dopo filtri LOC $\geq 100$, non-istanziabili, Nsmells $\geq 10$.
+         Il LOC qui riportato conta tutte le righe del file (incluse le vuote);
+         la colonna LOC in Tabella~\ref{tab:m4-metrics} conta solo le righe non vuote,
+         coerentemente con la definizione usata in M1.}
 \label{tab:m4-selected}
+\end{table}
+
+% ─── M4: Metriche versioni refactorizzate ─────────────────────────────────────
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}llrrrrrrr@{}}
+\toprule
+\textbf{Classe} & \textbf{Ver.} & \textbf{LOC} & \textbf{NSmells} & \textbf{NR} & \textbf{Nauth} & \textbf{Age} & \textbf{EXP} & \textbf{pred.} \\
+\midrule
+BrokerImpl & $C_0$ & 4901 & 1576 & 233 & 23 & 6883 & 103 & false \\
+           & $C_1$ & 4935 & 1585 & 233 & 23 & 6883 & 103 & false \\
+           & $C_2$ & 4889 & 1575 & 233 & 23 & 6883 & 103 & false \\
+           & $C_3$ & 4911 & 1573 & 233 & 23 & 6883 & 103 & false \\
+           & $C_4$ & 4921 & 1573 & 233 & 23 & 6883 & 103 & false \\
+\addlinespace
+LoginDialog & $C_0$ & 136 & 10 & 3 & 2 & 5378 & 213 & false \\
+            & $C_1$ & 150 & 12 & 3 & 2 & 5378 & 213 & false \\
+            & $C_2$ & 142 & 14 & 3 & 2 & 5378 & 213 & false \\
+\bottomrule
+\end{tabular}
+\caption{Metriche selezionate per le versioni refactorizzate. Le metriche aggregate e di commit
+(NR, Nauth, Age, EXP e tutte le altre non mostrate) sono identiche tra $C_0$ e ogni
+$C_X$ perché dipendono dalla storia git, che il refactoring non altera.
+\texttt{pred.} = predizione \texttt{isBuggy} con RF+No FS+SMOTE addestrato su dataset A.}
+\label{tab:m4-metrics}
+\end{table}
+
+% ─── M4: Correlazione feature–bugginess ───────────────────────────────────────
+\begin{table}[h!]
+\centering\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Feature} & \textbf{Spearman con \texttt{isBuggy}} \\
+\midrule
+Max\_LOC\_Added      &  $+0{,}2442$ \\
+LOC                  &  $+0{,}2351$ \\
+LOC\_Added           &  $+0{,}2156$ \\
+Avg\_LOC\_Added      &  $+0{,}2096$ \\
+Max\_Churn           &  $+0{,}2041$ \\
+LOC\_Touched         &  $+0{,}1860$ \\
+Churn                &  $+0{,}1860$ \\
+Avg\_Churn           &  $+0{,}1839$ \\
+Nfix                 &  $+0{,}1466$ \\
+NSmells              &  $+0{,}1451$ \\
+NR                   &  $+0{,}1418$ \\
+Nauth                &  $+0{,}1373$ \\
+Weighted\_Age        &  $+0{,}1127$ \\
+SEXP                 &  $+0{,}0987$ \\
+EXP                  &  $+0{,}0908$ \\
+\midrule
+Max\_Change\_Set     &  $-0{,}0697$ \\
+Change\_Set\_Size    &  $-0{,}0482$ \\
+Age                  &  $-0{,}0977$ \\
+Avg\_Change\_Set     &  $-0{,}2518$ \\
+\bottomrule
+\end{tabular}
+\caption{Correlazione Spearman tra ogni feature e \texttt{isBuggy} calcolata su
+dataset A (15.338 snapshot). Valori positivi indicano che feature più alta corrisponde
+a maggiore probabilità di bugginess; valori negativi l'inverso.
+Solo LOC e NSmells variano tra $C_0$ e $C_X$; tutte le altre restano invariate.}
+\label{tab:m4-correlation}
 \end{table}

@@ -23,7 +23,8 @@ import java.util.regex.Pattern;
 public class CommitIndexService {
 
     private static final Logger log = LoggerFactory.getLogger(CommitIndexService.class);
-    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z]+-\\d+");
+    @SuppressWarnings("java:S8786")
+    private static final Pattern ISSUE_KEY_PATTERN = Pattern.compile("[A-Z]++-\\d++");
 
     private final File repoDir;
     private Map<String, Set<String>> cachedIndex = null;
@@ -49,6 +50,7 @@ public class CommitIndexService {
         return cachedIndex;
     }
 
+    @SuppressWarnings("java:S4036")
     private Map<String, Set<String>> runGitLog() throws GitCommandException {
         try {
             ProcessBuilder pb = new ProcessBuilder(

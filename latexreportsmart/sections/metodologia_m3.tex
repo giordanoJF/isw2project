@@ -29,7 +29,7 @@ B e C; il confronto istanza per istanza tra B+ e B isola l'effetto dell'azzerame
 
 Questa configurazione introduce un \textit{data leakage parziale}: B+ è costruito a partire
 dalle stesse istanze di A con NSmells azzerato, e il modello è addestrato su A intero.
-Le predizioni su B+ hanno sono quindi ottimistiche. Il leakage
+Le predizioni su B+ sono quindi ottimistiche. Il leakage
 è tuttavia accettabile per lo scopo dell'analisi: l'obiettivo non è stimare la capacità
 predittiva del classificatore su dati nuovi, ma quantificare \textit{quanto cambiano le
 predizioni} quando si rimuovono i code smell a parità di tutte le altre feature.

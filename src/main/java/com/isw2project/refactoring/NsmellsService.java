@@ -66,8 +66,8 @@ public class NsmellsService {
         return smells.entrySet().stream()
                 .sorted(bySmellsDesc.thenComparing(byLocDesc))
                 .collect(Collectors.toMap(
-                        e -> e.getKey(),
-                        e -> e.getValue(),
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
                         (a, b) -> a,
                         LinkedHashMap::new));
     }
@@ -87,7 +87,7 @@ public class NsmellsService {
     private long locOf(Path file) {
         try (Stream<String> lines = Files.lines(file)) {
             return lines.count();
-        } catch (IOException e) {
+        } catch (IOException _) {
             return 0L;
         }
     }
@@ -113,8 +113,8 @@ public class NsmellsService {
                 String rel = absToRel.get(v.getFileId().getAbsolutePath());
                 if (rel != null) smells.merge(rel, 1, Integer::sum);
             }
-        } catch (Exception e) {
-            log.warn("PMD batch analysis failed: {}", e.getMessage());
+        } catch (Exception _) {
+            log.warn("PMD batch analysis failed for batch of {} files", batch.size());
         }
     }
 }

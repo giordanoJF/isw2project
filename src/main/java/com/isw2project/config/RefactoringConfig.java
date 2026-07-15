@@ -8,6 +8,8 @@ public class RefactoringConfig {
     private int smallClassLocThreshold = 100;
     private int selectionX = 2;
     private int minSmellsThreshold = 10;
+    private String inputCsv = "output/milestone1/5_snapshots/OPENJPA_snapshots.csv";
+    private String refactoredClassesDir = "classi_refactored";
 
     public String getOutputDir()                        { return outputDir; }
     public void setOutputDir(String outputDir)          { this.outputDir = outputDir; }
@@ -26,4 +28,10 @@ public class RefactoringConfig {
 
     public int getMinSmellsThreshold()                        { return minSmellsThreshold; }
     public void setMinSmellsThreshold(int minSmellsThreshold) { this.minSmellsThreshold = minSmellsThreshold; }
+
+    public String getInputCsv()                   { return inputCsv; }
+    public void setInputCsv(String inputCsv)      { this.inputCsv = inputCsv; }
+
+    public String getRefactoredClassesDir()                         { return refactoredClassesDir; }
+    public void setRefactoredClassesDir(String refactoredClassesDir){ this.refactoredClassesDir = refactoredClassesDir; }
 }

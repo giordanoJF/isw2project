@@ -68,16 +68,39 @@ la coerenza dei dati rispetto alla massimizzazione della dimensione del dataset.
 
 \begin{description}
   \item[\textit{Does C\textsubscript{X} compile?}]
-  \textbf{[TODO]} Riportare se $C_1$--$C_4$ compilano da soli e integrati con il sistema.
+  Sì per tutte le varianti prodotte, sia standalone che integrate nel sistema
+  (Tabella~\ref{tab:m4-compile}). Per LoginDialog, C\textsubscript{3} e
+  C\textsubscript{4} non sono state create: la dipendenza GWT rende JaCoCo e PIT
+  non operativi su questa classe, impedendo la generazione dei test CF e MT su cui
+  si basano quelle versioni.
 
   \item[\textit{Does C\textsubscript{X} have smells?}]
-  \textbf{[TODO]} Indicare per ogni versione: nessuno smell residuo, smell vecchi mantenuti,
-  o nuovi smell introdotti dal refactoring.
+  Sì in tutte le versioni prodotte; nessuna versione azzera gli smell.
+  Per \textbf{BrokerImpl}, $C_1$ peggiora ($+9$ smell), mentre $C_2$--$C_4$ migliorano
+  marginalmente ($-1$ a $-3$ rispetto ai 1576 di $C_0$).
+  Per \textbf{LoginDialog}, entrambe le versioni peggiorano: $C_1$ passa da 10 a 12
+  (+2), $C_2$ a 14 (+4). Il refactoring di LoginDialog ha introdotto nuovi smell su
+  una classe già quasi pulita (Tabella~\ref{tab:m4-metrics}).
 
   \item[\textit{Is any feature positively correlated with bugginess higher in C\textsubscript{X} than in C\textsubscript{0}?}]
-  \textbf{[TODO]} Se sì, il refactoring potrebbe non aver migliorato la manutenibilità.
+  Sì. Le uniche feature che variano tra versioni sono LOC ($\rho = +0{,}24$) e NSmells
+  ($\rho = +0{,}15$), entrambe positivamente correlate con la bugginess.
+  Entrambe crescono in BrokerImpl $C_1$ e in tutte le versioni di LoginDialog.
+  Questo è un segnale potenzialmente negativo: il profilo di rischio peggiora
+  leggermente rispetto a $C_0$.
+  Tuttavia la predizione rimane \texttt{false} in tutti i casi: le variazioni sono
+  troppo marginali per attraversare la soglia decisionale del modello
+  (Tabella~\ref{tab:m4-correlation}).
 
   \item[\textit{Is any feature negatively correlated with bugginess higher in C\textsubscript{X} than in C\textsubscript{0}?}]
-  \textbf{[TODO]} Se sì, il refactoring ha probabilmente migliorato la manutenibilità.
+  No. Le feature negativamente correlate con la bugginess (Avg\_Change\_Set
+  $\rho = -0{,}25$, Age $\rho = -0{,}10$, Max\_Change\_Set $\rho = -0{,}07$,
+  Change\_Set\_Size $\rho = -0{,}05$) sono tutte metriche aggregate e di commit che dipendono
+  dalla storia git della classe. Poiché il refactoring non altera la storia git, queste
+  metriche sono identiche tra $C_0$ e ogni $C_X$: non si osserva alcun miglioramento
+  sul fronte delle feature associate a minore bugginess.
+  A differenza della M3 --- dove BClassifierA prediva in-sample su dataset A ---
+  qui non si presenta leakage: le versioni refactorizzate appartengono alla release
+  \texttt{4.1.1}, esterna al dataset A.
 \end{description}
 

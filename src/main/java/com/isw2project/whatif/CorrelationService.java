@@ -19,6 +19,10 @@ public class CorrelationService {
     private static final String SPEARMAN_COL = "Spearman_with_NSmells";
 
     public List<Map<String, String>> computeCorrelation(Instances data, String targetAttribute) {
+        return computeCorrelation(data, targetAttribute, SPEARMAN_COL);
+    }
+
+    public List<Map<String, String>> computeCorrelation(Instances data, String targetAttribute, String resultColumn) {
         Attribute attr = data.attribute(targetAttribute);
         if (attr == null) {
             throw new IllegalArgumentException("Attribute not found: " + targetAttribute);
@@ -40,13 +44,13 @@ public class CorrelationService {
 
             Map<String, String> row = new LinkedHashMap<>();
             row.put("Feature", data.attribute(i).name());
-            row.put(SPEARMAN_COL, String.format("%.4f", spearman));
+            row.put(resultColumn, String.format("%.4f", spearman));
             rows.add(row);
         }
 
         rows.sort((a, b) -> Double.compare(
-            Math.abs(Double.parseDouble(b.get(SPEARMAN_COL))),
-            Math.abs(Double.parseDouble(a.get(SPEARMAN_COL)))
+            Math.abs(Double.parseDouble(b.get(resultColumn))),
+            Math.abs(Double.parseDouble(a.get(resultColumn)))
         ));
 
         log.info("Spearman correlation computed for {} features against {}", rows.size(), targetAttribute);
